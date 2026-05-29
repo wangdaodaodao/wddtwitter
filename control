@@ -1,0 +1,8 @@
+Package: com.wangdaodao.wddtwitter
+Name: wddtwitter
+Depends: mobilesubstrate
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: Standalone WDD Twitter Enhancer (mute replies by keyword/emoji/regex, hide blue verified, hide avatars/names, hide translation notice)
+Maintainer: wangdaodao
+Author: wangdaodao

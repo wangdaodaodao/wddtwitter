@@ -1,0 +1,14 @@
+.DS_Store
+.theos/
+.cursor/
+classdump/
+autopush.sh
+*.ipa
+packages/
+ipa/
+temp_ipa*
+temp_extract*
+TrollFools_*
+libflex/FLEX/
+*.zip
+ipa_extracted*

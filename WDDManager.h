@@ -1,0 +1,19 @@
+//
+//  WDDManager.h
+//  wddtwitter
+//
+
+#import <Foundation/Foundation.h>
+
+@interface WDDManager : NSObject
++ (BOOL)hideAuthorName;
++ (BOOL)hideAvatar;
++ (BOOL)hideBlueVerified;
++ (BOOL)hideTranslationNotice;
++ (BOOL)hideReplyToIndicator;
++ (BOOL)enableReplyFilter;
++ (NSString *)replyKeywords;
++ (BOOL)enableEmojiFilter;
++ (BOOL)enableRegexFilter;
++ (NSString *)replyRegexes;
+@end

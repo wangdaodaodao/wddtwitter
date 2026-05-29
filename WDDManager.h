@@ -16,4 +16,5 @@
 + (BOOL)enableEmojiFilter;
 + (BOOL)enableRegexFilter;
 + (NSString *)replyRegexes;
++ (BOOL)enableSingleImageSizing;
 @end

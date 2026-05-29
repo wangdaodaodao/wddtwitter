@@ -556,7 +556,8 @@ static BOOL isConnectorLineView(UIView *subview) {
     objc_setAssociatedObject(self, @selector(viewWillAppear:), @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
     TFNItemsDataViewControllerBackingStore *backingStore = self.backingStore;
-    if ([self.sections count] >= 1) {
+    NSUInteger sectionCount = [self.sections count];
+    if (sectionCount >= 1) {
         TFNSettingsNavigationItem *wddSettings = [[%c(TFNSettingsNavigationItem) alloc] initWithTitle:@"王导导增强设置" detail:@"自定义推特过滤与界面调整" iconName:nil controllerFactory:^UIViewController *{
             return [[WDDSettingsViewController alloc] initWithAccount:self.account];
         }];
@@ -568,15 +569,15 @@ static BOOL isConnectorLineView(UIView *subview) {
         }
 
         if ([backingStore respondsToSelector:@selector(insertSection:atIndex:)]) {
-            [backingStore insertSection:0 atIndex:1];
+            [backingStore insertSection:0 atIndex:sectionCount];
         } else {
-            [backingStore _tfn_insertSection:0 atIndex:1];
+            [backingStore _tfn_insertSection:0 atIndex:sectionCount];
         }
         
         if ([backingStore respondsToSelector:@selector(insertItem:atIndexPath:)]) {
-            [backingStore insertItem:wddSettings atIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
+            [backingStore insertItem:wddSettings atIndexPath:[NSIndexPath indexPathForRow:0 inSection:sectionCount]];
         } else {
-            [backingStore _tfn_insertItem:wddSettings atIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
+            [backingStore _tfn_insertItem:wddSettings atIndexPath:[NSIndexPath indexPathForRow:0 inSection:sectionCount]];
         }
     }
 }
@@ -591,21 +592,23 @@ static BOOL isConnectorLineView(UIView *subview) {
     }
     objc_setAssociatedObject(self, @selector(viewWillAppear:), @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-    if ([self.sections count] >= 1) {
+    NSUInteger sectionCount = [self.sections count];
+    if (sectionCount >= 1) {
         TFNItemsDataViewControllerBackingStore *backingStore = self.backingStore;
-        [backingStore insertSection:0 atIndex:1];
-        [backingStore insertItem:@"Row 0" atIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
-        [backingStore insertItem:@"Row 1" atIndexPath:[NSIndexPath indexPathForRow:1 inSection:0]];
+        [backingStore insertSection:0 atIndex:sectionCount];
+        [backingStore insertItem:@"Row 0" atIndexPath:[NSIndexPath indexPathForRow:0 inSection:sectionCount]];
+        [backingStore insertItem:@"Row 1" atIndexPath:[NSIndexPath indexPathForRow:1 inSection:sectionCount]];
     }
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (indexPath.section == 0 && indexPath.row == 1) {
+    NSUInteger customSectionIndex = [self.sections count] - 1;
+    if (indexPath.section == customSectionIndex && indexPath.row == 1) {
         TFNTextCell *tweakCell = [[%c(TFNTextCell) alloc] init];
         [tweakCell setAccessoryType:UITableViewCellAccessoryDisclosureIndicator];
         [tweakCell.textLabel setText:@"王导导增强设置"];
         return tweakCell;
-    } else if (indexPath.section == 0 && indexPath.row == 0) {
+    } else if (indexPath.section == customSectionIndex && indexPath.row == 0) {
         TFNTextCell *headerCell = [[%c(TFNTextCell) alloc] init];
         [headerCell setBackgroundColor:[UIColor clearColor]];
         headerCell.textLabel.textColor = [UIColor colorWithRed:0.40 green:0.47 blue:0.53 alpha:1.0];
@@ -616,7 +619,8 @@ static BOOL isConnectorLineView(UIView *subview) {
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (indexPath.section == 0 && indexPath.row == 1) {
+    NSUInteger customSectionIndex = [self.sections count] - 1;
+    if (indexPath.section == customSectionIndex && indexPath.row == 1) {
         WDDSettingsViewController *vc = [[WDDSettingsViewController alloc] initWithAccount:self.account];
         [self.navigationController pushViewController:vc animated:YES];
     } else {
@@ -625,8 +629,126 @@ static BOOL isConnectorLineView(UIView *subview) {
 }
 %end
 
+// ==============================
+// Timeline Media Sizing and Layout Adjustments
+// ==============================
+
+static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
+    if (!view) return;
+    if ([view isKindOfClass:[UIImageView class]]) {
+        view.frame = rect;
+        view.clipsToBounds = YES;
+        view.contentMode = UIViewContentModeScaleAspectFill;
+    }
+    for (UIView *subview in view.subviews) {
+        subview.frame = view.bounds;
+        makeImageViewsAspectFill(subview, view.bounds);
+    }
+}
+
+%hook T1StandardStatusAttachmentViewAdapter
+
+- (CGSize)_t1_verticalMediaSizeForAspectRatio:(double)aspectRatio width:(double)width anatomyFeatures:(id)anatomyFeatures {
+    if (![WDDManager enableSingleImageSizing]) {
+        return %orig;
+    }
+    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+        return %orig;
+    }
+    return %orig(16.0 / 9.0, width, anatomyFeatures);
+}
+
+- (CGSize)_t1_photoVideoForwardViewSizeForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width attachmentType:(unsigned long long)type {
+    if (![WDDManager enableSingleImageSizing]) {
+        return %orig;
+    }
+    CGSize size = %orig;
+    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+        return size;
+    }
+    
+    if (type == 2) {
+        NSArray *media = nil;
+        if ([viewModel respondsToSelector:@selector(inlineMediaInfos)]) {
+            media = [viewModel inlineMediaInfos];
+        } else if ([viewModel respondsToSelector:@selector(representedMediaEntities)]) {
+            media = [viewModel representedMediaEntities];
+        }
+        
+        if (media == nil || media.count == 1) {
+            double targetHeight = width * (9.0 / 16.0);
+            if (targetHeight <= 0) {
+                targetHeight = 100.0;
+            }
+            size.height = targetHeight;
+        }
+    }
+    return size;
+}
+
+%end
+
+%hook T1StatusPhotoVideoForwardView
+
+- (long long)_t1_imageContentMode {
+    if (![WDDManager enableSingleImageSizing]) {
+        return %orig;
+    }
+    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+        return %orig;
+    }
+    if ([self respondsToSelector:@selector(numberOfMediaItems)]) {
+        if ([self numberOfMediaItems] == 1) {
+            return 2; // UIViewContentModeScaleAspectFill
+        }
+    }
+    return %orig;
+}
+
+- (void)layoutSubviews {
+    %orig;
+    
+    if (![WDDManager enableSingleImageSizing]) {
+        return;
+    }
+    
+    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+        return;
+    }
+    
+    if ([self respondsToSelector:@selector(numberOfMediaItems)]) {
+        if ([self numberOfMediaItems] == 1) {
+            self.clipsToBounds = YES;
+            CGRect fillBounds = self.bounds;
+            
+            if ([self respondsToSelector:@selector(mediaContainerView)]) {
+                UIView *container = [self mediaContainerView];
+                if (container) {
+                    container.frame = fillBounds;
+                    container.clipsToBounds = YES;
+                    container.contentMode = UIViewContentModeScaleAspectFill;
+                    makeImageViewsAspectFill(container, fillBounds);
+                }
+            }
+            if ([self respondsToSelector:@selector(inlineMediaView)]) {
+                UIView *mediaView = [self inlineMediaView];
+                if (mediaView) {
+                    mediaView.frame = fillBounds;
+                    mediaView.clipsToBounds = YES;
+                    mediaView.contentMode = UIViewContentModeScaleAspectFill;
+                    makeImageViewsAspectFill(mediaView, fillBounds);
+                }
+            }
+        }
+    }
+}
+
+%end
+
 %ctor {
     NSLog(@"[wddtwitter] WDDTweak.x constructor loaded!");
     %init;
     %init(TimelineTranslation);
 }
+
+

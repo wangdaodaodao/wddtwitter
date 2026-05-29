@@ -90,3 +90,22 @@
 - (id)tabBarItemColor;
 - (id)textColor;
 @end
+
+@interface T1StatusPhotoVideoForwardView : UIView
+- (unsigned long long)numberOfMediaItems;
+- (id)inlineMediaView;
+- (id)mediaContainerView;
+- (long long)displayType;
+@end
+
+@interface T1StandardStatusAttachmentViewAdapter : NSObject
+- (unsigned long long)attachmentType;
+- (id)photoVideoForwardView;
+- (long long)displayType;
+@end
+
+@interface NSObject (TwitterMedia)
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+

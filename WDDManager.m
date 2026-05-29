@@ -47,4 +47,8 @@
     return [[NSUserDefaults standardUserDefaults] stringForKey:@"reply_regexes"];
 }
 
++ (BOOL)enableSingleImageSizing {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_enable_single_image_sizing"];
+}
+
 @end

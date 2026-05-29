@@ -109,3 +109,13 @@
 - (NSArray *)representedMediaEntities;
 @end
 
+@interface ConversationConnectorView : UIView
+@end
+
+@interface T1StandardStatusConversationConnectorsView : UIView
+@end
+
+@interface T1ConversationTreeConnectorsView : UIView
+@end
+
+

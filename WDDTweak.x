@@ -231,11 +231,19 @@ static BOOL isViewModelReply(id viewModel) {
 
 // Helper: detect if a subview is a conversation connector line.
 static BOOL isConnectorLineView(UIView *subview) {
+    if (!subview) return NO;
+    NSString *className = NSStringFromClass([subview class]);
+    if ([className isEqualToString:@"ConversationConnectorView"] ||
+        [className isEqualToString:@"T1StandardStatusConversationConnectorsView"] ||
+        [className isEqualToString:@"T1ConversationTreeConnectorsView"] ||
+        [className isEqualToString:@"T1CurvedLine"]) {
+        return YES;
+    }
     CGRect f = subview.frame;
     if (f.size.width <= 0 || f.size.height <= 0) return NO;
     if (f.size.width > 6.0) return NO;
     if (f.size.height < 20.0) return NO;
-    if (f.origin.x < 10.0 || f.origin.x > 45.0) return NO;
+    if (f.origin.x < 10.0 || f.origin.x > 55.0) return NO;
     return YES;
 }
 
@@ -279,7 +287,7 @@ static BOOL isConnectorLineView(UIView *subview) {
         for (UIView *subview in ((UIView *)self).subviews) {
             CGRect f = subview.frame;
             if (isConnectorLineView(subview)) {
-                f.origin.x = 2.0;
+                f.origin.x = 7.0;
                 f.origin.y -= 50.0;
                 f.size.height += 100.0;
                 subview.frame = f;
@@ -289,7 +297,7 @@ static BOOL isConnectorLineView(UIView *subview) {
             for (UIView *innerView in subview.subviews) {
                 if (isConnectorLineView(innerView)) {
                     CGRect innerF = innerView.frame;
-                    innerF.origin.x = 2.0;
+                    innerF.origin.x = 7.0 - subview.frame.origin.x;
                     innerF.origin.y -= 50.0;
                     innerF.size.height += 100.0;
                     innerView.frame = innerF;
@@ -353,7 +361,7 @@ static BOOL isConnectorLineView(UIView *subview) {
         for (UIView *subview in ((UIView *)self).subviews) {
             CGRect f = subview.frame;
             if (isConnectorLineView(subview)) {
-                f.origin.x = 2.0;
+                f.origin.x = 7.0;
                 f.origin.y -= 50.0;
                 f.size.height += 100.0;
                 subview.frame = f;
@@ -363,7 +371,7 @@ static BOOL isConnectorLineView(UIView *subview) {
             for (UIView *innerView in subview.subviews) {
                 if (isConnectorLineView(innerView)) {
                     CGRect innerF = innerView.frame;
-                    innerF.origin.x = 2.0;
+                    innerF.origin.x = 7.0 - subview.frame.origin.x;
                     innerF.origin.y -= 50.0;
                     innerF.size.height += 100.0;
                     innerView.frame = innerF;
@@ -390,7 +398,11 @@ static BOOL isConnectorLineView(UIView *subview) {
 %hook ConversationConnectorView
 - (void)setFrame:(CGRect)frame {
     if ([WDDManager hideAvatar]) {
-        frame.origin.x = 2.0;
+        if (self.superview) {
+            frame.origin.x = 7.0 - self.superview.frame.origin.x;
+        } else {
+            frame.origin.x = 7.0;
+        }
         frame.origin.y -= 50.0;
         frame.size.height += 100.0;
         ((UIView *)self).clipsToBounds = NO;
@@ -402,12 +414,46 @@ static BOOL isConnectorLineView(UIView *subview) {
 %hook T1StandardStatusConversationConnectorsView
 - (void)setFrame:(CGRect)frame {
     if ([WDDManager hideAvatar]) {
-        frame.origin.x = 2.0;
+        frame.origin.x = 7.0;
         frame.origin.y -= 50.0;
         frame.size.height += 100.0;
         ((UIView *)self).clipsToBounds = NO;
     }
     %orig(frame);
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideAvatar]) {
+        for (UIView *subview in ((UIView *)self).subviews) {
+            CGRect f = subview.frame;
+            f.origin.x = 0.0;
+            subview.frame = f;
+        }
+    }
+}
+%end
+
+%hook T1ConversationTreeConnectorsView
+- (void)setFrame:(CGRect)frame {
+    if ([WDDManager hideAvatar]) {
+        frame.origin.x = 7.0;
+        frame.origin.y -= 50.0;
+        frame.size.height += 100.0;
+        ((UIView *)self).clipsToBounds = NO;
+    }
+    %orig(frame);
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideAvatar]) {
+        for (UIView *subview in ((UIView *)self).subviews) {
+            CGRect f = subview.frame;
+            f.origin.x = 0.0;
+            subview.frame = f;
+        }
+    }
 }
 %end
 

@@ -17,4 +17,5 @@
 + (BOOL)enableRegexFilter;
 + (NSString *)replyRegexes;
 + (BOOL)enableSingleImageSizing;
++ (BOOL)hideAccountLabels;
 @end

@@ -166,6 +166,15 @@ static BOOL shouldHideTweetByKeywords(id item) {
 - (BOOL)isVerifiedAccount {
     return [WDDManager hideBlueVerified] ? NO : %orig;
 }
+- (id)highlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (id)parodyCommentaryFanLabel {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasParodyProfileLabel {
+    return [WDDManager hideAccountLabels] ? NO : %orig;
+}
 %end
 
 %hook T1StandardUserViewModel
@@ -184,6 +193,15 @@ static BOOL shouldHideTweetByKeywords(id item) {
 - (BOOL)isVerifiedAccount {
     return [WDDManager hideBlueVerified] ? NO : %orig;
 }
+- (id)highlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (id)parodyCommentaryFanLabel {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasParodyProfileLabel {
+    return [WDDManager hideAccountLabels] ? NO : %orig;
+}
 %end
 
 %hook T1ProfileUserViewModel
@@ -192,6 +210,15 @@ static BOOL shouldHideTweetByKeywords(id item) {
 }
 - (BOOL)isVerifiedAccount {
     return [WDDManager hideBlueVerified] ? NO : %orig;
+}
+- (id)highlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (id)parodyCommentaryFanLabel {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasParodyProfileLabel {
+    return [WDDManager hideAccountLabels] ? NO : %orig;
 }
 %end
 
@@ -829,6 +856,9 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 - (NSArray *)representedMediaEntities {
     return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
 }
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
 %end
 
 %hook T1CompositionStatusViewModel
@@ -840,6 +870,9 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 - (NSArray *)representedMediaEntities {
     return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
 }
 %end
 
@@ -853,6 +886,9 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 - (NSArray *)representedMediaEntities {
     return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
 }
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
 %end
 
 %hook T1TwitterCoreStatusViewModelAdapter
@@ -864,6 +900,9 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 - (NSArray *)representedMediaEntities {
     return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
 }
 %end
 

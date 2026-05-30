@@ -51,4 +51,8 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_enable_single_image_sizing"];
 }
 
++ (BOOL)hideAccountLabels {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_account_labels"];
+}
+
 @end

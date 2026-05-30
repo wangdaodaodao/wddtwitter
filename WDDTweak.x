@@ -675,14 +675,35 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
         makeImageViewsAspectFill(subview, view.bounds);
     }
 }
+static BOOL g_isCalculatingQuotedLayout = NO;
+static BOOL g_hasAdjustedQuotedWidth = NO;
 
 %hook T1StandardStatusAttachmentViewAdapter
+
+- (id)_t1_quotedStandardStatusViewLayoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width {
+    g_isCalculatingQuotedLayout = YES;
+    BOOL adjusted = NO;
+    if ([WDDManager hideAvatar] && !g_hasAdjustedQuotedWidth) {
+        width += 56.0;
+        g_hasAdjustedQuotedWidth = YES;
+        adjusted = YES;
+    }
+    id result = %orig(viewModel, layoutMetrics, width);
+    if (adjusted) {
+        g_hasAdjustedQuotedWidth = NO;
+    }
+    g_isCalculatingQuotedLayout = NO;
+    return result;
+}
 
 - (CGSize)_t1_verticalMediaSizeForAspectRatio:(double)aspectRatio width:(double)width anatomyFeatures:(id)anatomyFeatures {
     if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
-    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+    if (g_isCalculatingQuotedLayout) {
+        return CGSizeZero;
+    }
+    if (!g_isCalculatingQuotedLayout && [self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
         return %orig;
     }
     return %orig(16.0 / 9.0, width, anatomyFeatures);
@@ -692,8 +713,11 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
+    if (g_isCalculatingQuotedLayout) {
+        return CGSizeZero;
+    }
     CGSize size = %orig;
-    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+    if (!g_isCalculatingQuotedLayout && [self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
         return size;
     }
     
@@ -716,6 +740,131 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     return size;
 }
 
+%end
+
+%hook T1QuotedStandardStatusView
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager enableSingleImageSizing]) {
+        UIView *mediaView = nil;
+        if ([self respondsToSelector:@selector(photoVideoForwardView)]) {
+            mediaView = [self photoVideoForwardView];
+        }
+        if (!mediaView && [self respondsToSelector:@selector(visibleMediaForwardView)]) {
+            mediaView = [self visibleMediaForwardView];
+        }
+        if (mediaView) {
+            mediaView.hidden = YES;
+            mediaView.frame = CGRectZero;
+        }
+    }
+}
+%end
+
+%hook T1QuotedStandardStatusViewLayoutStateGenerator
+
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account width:(double)width layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState {
+    g_isCalculatingQuotedLayout = YES;
+    BOOL adjusted = NO;
+    if ([WDDManager hideAvatar] && !g_hasAdjustedQuotedWidth) {
+        width += 56.0;
+        g_hasAdjustedQuotedWidth = YES;
+        adjusted = YES;
+    }
+    id result = %orig(viewModel, options, account, width, layoutMetrics, previousLayoutState);
+    if (adjusted) {
+        g_hasAdjustedQuotedWidth = NO;
+    }
+    g_isCalculatingQuotedLayout = NO;
+    return result;
+}
+
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState {
+    g_isCalculatingQuotedLayout = YES;
+    id result = %orig;
+    g_isCalculatingQuotedLayout = NO;
+    return result;
+}
+
+- (id)_t1_updateLayoutStateForDefaultQuoteTweetViewModel:(id)viewModel layoutState:(id)layoutState viewAdapterSet:(id)viewAdapterSet options:(unsigned long long)options account:(id)account width:(double)width layoutMetrics:(id)layoutMetrics {
+    BOOL adjusted = NO;
+    if ([WDDManager hideAvatar] && !g_hasAdjustedQuotedWidth) {
+        width += 56.0;
+        g_hasAdjustedQuotedWidth = YES;
+        adjusted = YES;
+    }
+    id result = %orig(viewModel, layoutState, viewAdapterSet, options, account, width, layoutMetrics);
+    if (adjusted) {
+        g_hasAdjustedQuotedWidth = NO;
+    }
+    return result;
+}
+
+- (id)_t1_updateLayoutStateForMediaFirstMediumQuoteTweetViewModel:(id)viewModel layoutState:(id)layoutState viewAdapterSet:(id)viewAdapterSet options:(unsigned long long)options account:(id)account width:(double)width layoutMetrics:(id)layoutMetrics {
+    if ([WDDManager enableSingleImageSizing]) {
+        return [self _t1_updateLayoutStateForDefaultQuoteTweetViewModel:viewModel layoutState:layoutState viewAdapterSet:viewAdapterSet options:options account:account width:width layoutMetrics:layoutMetrics];
+    }
+    BOOL adjusted = NO;
+    if ([WDDManager hideAvatar] && !g_hasAdjustedQuotedWidth) {
+        width += 56.0;
+        g_hasAdjustedQuotedWidth = YES;
+        adjusted = YES;
+    }
+    id result = %orig(viewModel, layoutState, viewAdapterSet, options, account, width, layoutMetrics);
+    if (adjusted) {
+        g_hasAdjustedQuotedWidth = NO;
+    }
+    return result;
+}
+
+%end
+
+%hook TFNTwitterStatus
+- (BOOL)hasMedia {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+%end
+
+%hook T1CompositionStatusViewModel
+- (BOOL)hasMedia {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+%end
+
+%hook T1TranslatedStatusViewModel
+- (BOOL)hasMedia {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+%end
+
+%hook T1TwitterCoreStatusViewModelAdapter
+- (BOOL)hasMedia {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
 %end
 
 %hook T1StatusPhotoVideoForwardView

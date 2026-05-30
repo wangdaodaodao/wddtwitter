@@ -71,6 +71,11 @@
 @interface T1StandardStatusView : UIView
 @end
 
+@interface T1QuotedStandardStatusView : UIView
+- (id)photoVideoForwardView;
+- (id)visibleMediaForwardView;
+@end
+
 @interface TFNTextCell : UITableViewCell
 @end
 
@@ -102,6 +107,7 @@
 - (unsigned long long)attachmentType;
 - (id)photoVideoForwardView;
 - (long long)displayType;
+- (id)_t1_quotedStandardStatusViewLayoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width;
 @end
 
 @interface NSObject (TwitterMedia)
@@ -117,5 +123,37 @@
 
 @interface T1ConversationTreeConnectorsView : UIView
 @end
+
+@interface T1QuotedStandardStatusViewLayoutStateGenerator : NSObject
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account width:(double)width layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState;
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState;
+- (id)_t1_updateLayoutStateForDefaultQuoteTweetViewModel:(id)viewModel layoutState:(id)layoutState viewAdapterSet:(id)viewAdapterSet options:(unsigned long long)options account:(id)account width:(double)width layoutMetrics:(id)layoutMetrics;
+- (id)_t1_updateLayoutStateForMediaFirstMediumQuoteTweetViewModel:(id)viewModel layoutState:(id)layoutState viewAdapterSet:(id)viewAdapterSet options:(unsigned long long)options account:(id)account width:(double)width layoutMetrics:(id)layoutMetrics;
+@end
+
+@interface TFNTwitterStatus : NSObject
+- (BOOL)hasMedia;
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+
+@interface T1CompositionStatusViewModel : NSObject
+- (BOOL)hasMedia;
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+
+@interface T1TranslatedStatusViewModel : NSObject
+- (BOOL)hasMedia;
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+
+@interface T1TwitterCoreStatusViewModelAdapter : NSObject
+- (BOOL)hasMedia;
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+
 
 

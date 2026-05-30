@@ -55,4 +55,8 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_account_labels"];
 }
 
++ (BOOL)hideDisclosureLabels {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_disclosure_labels"];
+}
+
 @end

@@ -859,6 +859,12 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 - (id)fromUserHighlightedDesignatorInfo {
     return [WDDManager hideAccountLabels] ? nil : %orig;
 }
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
 %end
 
 %hook T1CompositionStatusViewModel
@@ -873,6 +879,12 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 - (id)fromUserHighlightedDesignatorInfo {
     return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
 }
 %end
 
@@ -889,6 +901,12 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 - (id)fromUserHighlightedDesignatorInfo {
     return [WDDManager hideAccountLabels] ? nil : %orig;
 }
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
 %end
 
 %hook T1TwitterCoreStatusViewModelAdapter
@@ -903,6 +921,12 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 - (id)fromUserHighlightedDesignatorInfo {
     return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
 }
 %end
 

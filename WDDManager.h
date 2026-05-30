@@ -18,4 +18,5 @@
 + (NSString *)replyRegexes;
 + (BOOL)enableSingleImageSizing;
 + (BOOL)hideAccountLabels;
++ (BOOL)hideDisclosureLabels;
 @end

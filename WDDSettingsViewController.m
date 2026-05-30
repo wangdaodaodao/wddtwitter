@@ -27,6 +27,7 @@
             @{ @"key": @"wdd_hide_reply_to_indicator", @"title": @"屏蔽回复指示", @"subtitle": @"隐藏回复推文中的‘回复 @用户名’提示", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_enable_single_image_sizing", @"title": @"固定单图大小", @"subtitle": @"固定首页单张图片为 16:9 比例并居中裁剪", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_hide_account_labels", @"title": @"隐藏账号标签", @"subtitle": @"隐藏“戏仿/自动化/游戏/类别”等账号标签", @"default": @NO, @"type": @"toggle" },
+            @{ @"key": @"wdd_hide_disclosure_labels", @"title": @"隐藏推文底部标签", @"subtitle": @"隐藏推文底部的“付费合作/推广/AI生成”等标签", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"enable_reply_filter", @"title": @"回复关键词屏蔽", @"subtitle": @"开启后将根据关键词隐藏回复推文", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"reply_keywords", @"title": @"设置屏蔽关键词", @"subtitle": @"点击设置（多个关键词请用中or英文逗号分隔）", @"type": @"button" },
             @{ @"key": @"enable_emoji_filter", @"title": @"屏蔽纯表情回复", @"subtitle": @"屏蔽无中文且无英文数字的回复，或超3个emoji且无中文的回复", @"default": @NO, @"type": @"toggle" },

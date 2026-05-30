@@ -233,18 +233,28 @@ static BOOL isViewModelReply(id viewModel) {
 static BOOL isConnectorLineView(UIView *subview) {
     if (!subview) return NO;
     NSString *className = NSStringFromClass([subview class]);
-    if ([className isEqualToString:@"ConversationConnectorView"] ||
-        [className isEqualToString:@"T1StandardStatusConversationConnectorsView"] ||
-        [className isEqualToString:@"T1ConversationTreeConnectorsView"] ||
-        [className isEqualToString:@"T1CurvedLine"]) {
+    if ([className rangeOfString:@"ConversationConnectorView"].location != NSNotFound ||
+        [className rangeOfString:@"T1StandardStatusConversationConnectorsView"].location != NSNotFound ||
+        [className rangeOfString:@"T1ConversationTreeConnectorsView"].location != NSNotFound ||
+        [className rangeOfString:@"T1CurvedLine"].location != NSNotFound) {
         return YES;
+    }
+    if ([className rangeOfString:@"TFNRoundedCornerView"].location != NSNotFound) {
+        CGRect f = subview.frame;
+        if (f.size.width > 0 && f.size.width <= 6.0) {
+            return YES;
+        }
     }
     CGRect f = subview.frame;
     if (f.size.width <= 0 || f.size.height <= 0) return NO;
     if (f.size.width > 6.0) return NO;
-    if (f.size.height < 20.0) return NO;
-    if (f.origin.x < 10.0 || f.origin.x > 55.0) return NO;
-    return YES;
+    if (f.size.height < 10.0) return NO;
+    
+    // Accept if it is in the target position (6.0 - 8.0) OR the original position (10.0 - 55.0)
+    if (f.origin.x >= 6.0 && f.origin.x <= 8.0) return YES;
+    if (f.origin.x >= 10.0 && f.origin.x <= 55.0) return YES;
+    
+    return NO;
 }
 
 %hook T1StatusView
@@ -287,21 +297,14 @@ static BOOL isConnectorLineView(UIView *subview) {
         for (UIView *subview in ((UIView *)self).subviews) {
             CGRect f = subview.frame;
             if (isConnectorLineView(subview)) {
-                f.origin.x = 7.0;
-                f.origin.y -= 50.0;
-                f.size.height += 100.0;
-                subview.frame = f;
-                subview.clipsToBounds = NO;
+                subview.hidden = YES;
+                subview.frame = CGRectZero;
                 continue;
             }
             for (UIView *innerView in subview.subviews) {
                 if (isConnectorLineView(innerView)) {
-                    CGRect innerF = innerView.frame;
-                    innerF.origin.x = 7.0 - subview.frame.origin.x;
-                    innerF.origin.y -= 50.0;
-                    innerF.size.height += 100.0;
-                    innerView.frame = innerF;
-                    innerView.clipsToBounds = NO;
+                    innerView.hidden = YES;
+                    innerView.frame = CGRectZero;
                 }
             }
             if (f.origin.x < 10.0 && f.size.width < 65.0 && f.size.width > 0) {
@@ -361,21 +364,14 @@ static BOOL isConnectorLineView(UIView *subview) {
         for (UIView *subview in ((UIView *)self).subviews) {
             CGRect f = subview.frame;
             if (isConnectorLineView(subview)) {
-                f.origin.x = 7.0;
-                f.origin.y -= 50.0;
-                f.size.height += 100.0;
-                subview.frame = f;
-                subview.clipsToBounds = NO;
+                subview.hidden = YES;
+                subview.frame = CGRectZero;
                 continue;
             }
             for (UIView *innerView in subview.subviews) {
                 if (isConnectorLineView(innerView)) {
-                    CGRect innerF = innerView.frame;
-                    innerF.origin.x = 7.0 - subview.frame.origin.x;
-                    innerF.origin.y -= 50.0;
-                    innerF.size.height += 100.0;
-                    innerView.frame = innerF;
-                    innerView.clipsToBounds = NO;
+                    innerView.hidden = YES;
+                    innerView.frame = CGRectZero;
                 }
             }
             if (f.origin.x < 10.0 && f.size.width < 65.0 && f.size.width > 0) {
@@ -398,14 +394,8 @@ static BOOL isConnectorLineView(UIView *subview) {
 %hook ConversationConnectorView
 - (void)setFrame:(CGRect)frame {
     if ([WDDManager hideAvatar]) {
-        if (self.superview) {
-            frame.origin.x = 7.0 - self.superview.frame.origin.x;
-        } else {
-            frame.origin.x = 7.0;
-        }
-        frame.origin.y -= 50.0;
-        frame.size.height += 100.0;
-        ((UIView *)self).clipsToBounds = NO;
+        frame = CGRectZero;
+        ((UIView *)self).hidden = YES;
     }
     %orig(frame);
 }
@@ -414,10 +404,8 @@ static BOOL isConnectorLineView(UIView *subview) {
 %hook T1StandardStatusConversationConnectorsView
 - (void)setFrame:(CGRect)frame {
     if ([WDDManager hideAvatar]) {
-        frame.origin.x = 7.0;
-        frame.origin.y -= 50.0;
-        frame.size.height += 100.0;
-        ((UIView *)self).clipsToBounds = NO;
+        frame = CGRectZero;
+        ((UIView *)self).hidden = YES;
     }
     %orig(frame);
 }
@@ -426,9 +414,8 @@ static BOOL isConnectorLineView(UIView *subview) {
     %orig;
     if ([WDDManager hideAvatar]) {
         for (UIView *subview in ((UIView *)self).subviews) {
-            CGRect f = subview.frame;
-            f.origin.x = 0.0;
-            subview.frame = f;
+            subview.hidden = YES;
+            subview.frame = CGRectZero;
         }
     }
 }
@@ -437,10 +424,8 @@ static BOOL isConnectorLineView(UIView *subview) {
 %hook T1ConversationTreeConnectorsView
 - (void)setFrame:(CGRect)frame {
     if ([WDDManager hideAvatar]) {
-        frame.origin.x = 7.0;
-        frame.origin.y -= 50.0;
-        frame.size.height += 100.0;
-        ((UIView *)self).clipsToBounds = NO;
+        frame = CGRectZero;
+        ((UIView *)self).hidden = YES;
     }
     %orig(frame);
 }
@@ -449,9 +434,8 @@ static BOOL isConnectorLineView(UIView *subview) {
     %orig;
     if ([WDDManager hideAvatar]) {
         for (UIView *subview in ((UIView *)self).subviews) {
-            CGRect f = subview.frame;
-            f.origin.x = 0.0;
-            subview.frame = f;
+            subview.hidden = YES;
+            subview.frame = CGRectZero;
         }
     }
 }

@@ -59,4 +59,8 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_disclosure_labels"];
 }
 
++ (BOOL)hideTimelineViewCount {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_timeline_view_count"];
+}
+
 @end

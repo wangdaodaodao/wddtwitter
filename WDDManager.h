@@ -19,4 +19,5 @@
 + (BOOL)enableSingleImageSizing;
 + (BOOL)hideAccountLabels;
 + (BOOL)hideDisclosureLabels;
++ (BOOL)hideTimelineViewCount;
 @end

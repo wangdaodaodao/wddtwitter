@@ -1038,6 +1038,66 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
             mediaView.frame = CGRectZero;
         }
     }
+    if ([WDDManager hideAvatar]) {
+        UIView *avatarView = nil;
+        for (UIView *subview in ((UIView *)self).subviews) {
+            NSString *className = NSStringFromClass([subview class]);
+            if ([className rangeOfString:@"Avatar" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                avatarView = subview;
+                break;
+            }
+        }
+        
+        if (avatarView) {
+            CGRect avatarFrame = avatarView.frame;
+            if (avatarFrame.size.width > 0) {
+                CGFloat maxHeaderY = avatarFrame.origin.y + avatarFrame.size.height + 4.0;
+                CGFloat minTextX = 9999.0;
+                
+                // Pass 2: Find the leftmost header element's X coordinate to the right of the avatar
+                for (UIView *subview in ((UIView *)self).subviews) {
+                    if (subview == avatarView) continue;
+                    CGRect f = subview.frame;
+                    if (f.origin.x > avatarFrame.origin.x && f.origin.y < maxHeaderY && f.size.width > 0 && f.size.height > 0) {
+                        // Exclude background views
+                        if (f.size.width < ((UIView *)self).bounds.size.width - 20.0) {
+                            if (f.origin.x < minTextX) {
+                                minTextX = f.origin.x;
+                            }
+                        }
+                    }
+                }
+                
+                CGFloat shiftAmount = 0.0;
+                if (minTextX < 9999.0 && minTextX > avatarFrame.origin.x) {
+                    shiftAmount = minTextX - avatarFrame.origin.x;
+                }
+                
+                // Hide avatar view
+                avatarView.hidden = YES;
+                avatarView.alpha = 0.0;
+                avatarView.frame = CGRectZero;
+                
+                // Shift all header elements left
+                if (shiftAmount > 0) {
+                    for (UIView *subview in ((UIView *)self).subviews) {
+                        if (subview == avatarView) continue;
+                        CGRect f = subview.frame;
+                        if (f.origin.x > avatarFrame.origin.x && f.origin.y < maxHeaderY && f.size.width > 0 && f.size.height > 0) {
+                            if (f.size.width < ((UIView *)self).bounds.size.width - 20.0) {
+                                f.origin.x -= shiftAmount;
+                                subview.frame = f;
+                            }
+                        }
+                    }
+                }
+            } else {
+                avatarView.hidden = YES;
+                avatarView.alpha = 0.0;
+                avatarView.frame = CGRectZero;
+            }
+        }
+    }
 }
 %end
 

@@ -468,51 +468,293 @@ static BOOL isConnectorLineView(UIView *subview) {
 }
 %end
 
+static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
+    if (!vc) return NO;
+    
+    // 1. Check conversationFocalStatusID
+    if ([vc respondsToSelector:@selector(conversationFocalStatusID)]) {
+        @try {
+            long long focalID = ((long long (*)(id, SEL))objc_msgSend)(vc, @selector(conversationFocalStatusID));
+            if (focalID != 0) {
+                return YES;
+            }
+        } @catch (NSException *e) {}
+    }
+    
+    // 2. Check isConversationFocalStatus
+    if ([vc respondsToSelector:@selector(isConversationFocalStatus)]) {
+        @try {
+            BOOL isFocal = ((BOOL (*)(id, SEL))objc_msgSend)(vc, @selector(isConversationFocalStatus));
+            if (isFocal) {
+                return YES;
+            }
+        } @catch (NSException *e) {}
+    }
+    
+    // 3. Check timeline property class name (for T1URTViewController with URTConversationTimeline)
+    if ([vc respondsToSelector:@selector(timeline)]) {
+        @try {
+            id timeline = ((id (*)(id, SEL))objc_msgSend)(vc, @selector(timeline));
+            if (timeline) {
+                NSString *timelineClassName = NSStringFromClass([timeline class]);
+                if ([timelineClassName rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                    return YES;
+                }
+            }
+        } @catch (NSException *e) {}
+    }
+
+    // 4. Check scribeContext property (for tweet_detail/conversation pages)
+    if ([vc respondsToSelector:@selector(scribeContext)]) {
+        @try {
+            id scribeContext = ((id (*)(id, SEL))objc_msgSend)(vc, @selector(scribeContext));
+            if (scribeContext) {
+                NSString *description = [scribeContext description];
+                if ([description rangeOfString:@"tweet_detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+                    [description rangeOfString:@"conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                    return YES;
+                }
+            }
+        } @catch (NSException *e) {}
+    }
+    
+    // 5. Check class name of the view controller
+    NSString *className = NSStringFromClass([vc class]);
+    if ([className rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+        [className rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+        [className rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+        return YES;
+    }
+    
+    for (UIViewController *child in vc.childViewControllers) {
+        if (isCurrentViewControllerDetails(child)) {
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
+static BOOL isCurrentActiveContextDetail(void) {
+    @try {
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    for (UIWindow *w in scene.windows) {
+                        if (w.isKeyWindow) {
+                            window = w;
+                            break;
+                        }
+                    }
+                }
+                if (window) break;
+            }
+        }
+        if (!window) {
+            window = [UIApplication sharedApplication].keyWindow;
+        }
+        UIViewController *vc = window.rootViewController;
+        while (vc) {
+            if ([vc isKindOfClass:[UINavigationController class]]) {
+                UINavigationController *nav = (UINavigationController *)vc;
+                // Proactively check topViewController during transition
+                UIViewController *top = nav.topViewController;
+                if (top && isCurrentViewControllerDetails(top)) {
+                    return YES;
+                }
+                vc = nav.visibleViewController;
+            } else if ([vc isKindOfClass:[UITabBarController class]]) {
+                vc = [(UITabBarController *)vc selectedViewController];
+            } else if (vc.presentedViewController) {
+                vc = vc.presentedViewController;
+            } else {
+                break;
+            }
+        }
+        if (vc) {
+            return isCurrentViewControllerDetails(vc);
+        }
+    } @catch (NSException *e) {}
+    return NO;
+}
+
+static UIViewController *viewControllerForView(UIView *view) {
+    UIResponder *responder = view;
+    while (responder) {
+        if ([responder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)responder;
+        }
+        responder = [responder nextResponder];
+    }
+    return nil;
+}
+
+static BOOL isFocalContext(UIView *view) {
+    if (view) {
+        // 1. Walk superview chain for cell/view class containing Focal or Detail
+        UIView *temp = view;
+        while (temp) {
+            NSString *className = NSStringFromClass([temp class]);
+            if ([className rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+                [className rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                return YES;
+            }
+            temp = temp.superview;
+        }
+        
+        // 2. Walk responder chain to check owning view controller
+        UIViewController *vc = viewControllerForView(view);
+        if (vc && isCurrentViewControllerDetails(vc)) {
+            return YES;
+        }
+    }
+    
+    // 3. Thread local flag set during layout state generation
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDIsFocalLayout"] boolValue]) {
+        return YES;
+    }
+    
+    // 4. Global active controller fallback
+    return isCurrentActiveContextDetail();
+}
+
 // MARK: - Hide Translation Banner
 %group TimelineTranslation
 
+%hook T1ConversationFocalStatusViewLayoutStateGenerator
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    id oldVal = threadDict[@"WDDIsFocalLayout"];
+    threadDict[@"WDDIsFocalLayout"] = @YES;
+    id result = %orig;
+    if (oldVal) {
+        threadDict[@"WDDIsFocalLayout"] = oldVal;
+    } else {
+        [threadDict removeObjectForKey:@"WDDIsFocalLayout"];
+    }
+    return result;
+}
+
+- (id)layoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    id oldVal = threadDict[@"WDDIsFocalLayout"];
+    threadDict[@"WDDIsFocalLayout"] = @YES;
+    id result = %orig;
+    if (oldVal) {
+        threadDict[@"WDDIsFocalLayout"] = oldVal;
+    } else {
+        [threadDict removeObjectForKey:@"WDDIsFocalLayout"];
+    }
+    return result;
+}
+%end
+
 %hook T1StandardStatusTranslateLayoutState
 - (BOOL)isTranslatable {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
 - (void)setTranslatable:(BOOL)translatable {
-    %orig([WDDManager hideTranslationNotice] ? NO : translatable);
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            %orig(translatable);
+        } else {
+            %orig(NO);
+        }
+    } else {
+        %orig(translatable);
+    }
 }
 %end
 
 %hook T1StandardStatusTranslateAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
-- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(id)displayType {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
 %end
 
 %hook T1StandardStatusGrokTranslateButtonViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
-- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(id)displayType {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
 %end
 
 %hook T1StandardStatusGrokAutoTranslateAnnotationViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
-- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(id)displayType {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
 %end
 
 %hook T1StandardStatusGrokAutoTranslateToggleViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
-- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(id)displayType {
-    return [WDDManager hideTranslationNotice] ? NO : %orig;
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideTranslationNotice]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
 }
 %end
 
@@ -520,9 +762,11 @@ static BOOL isConnectorLineView(UIView *subview) {
 - (id)initWithFrame:(CGRect)frame {
     id result = %orig(frame);
     if (result && [WDDManager hideTranslationNotice]) {
-        UIView *view = (UIView *)result;
-        view.hidden = YES;
-        view.alpha = 0.0;
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
     }
     return result;
 }
@@ -530,9 +774,11 @@ static BOOL isConnectorLineView(UIView *subview) {
 - (id)init {
     id result = %orig;
     if (result && [WDDManager hideTranslationNotice]) {
-        UIView *view = (UIView *)result;
-        view.hidden = YES;
-        view.alpha = 0.0;
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
     }
     return result;
 }
@@ -541,14 +787,21 @@ static BOOL isConnectorLineView(UIView *subview) {
     %orig;
     if ([WDDManager hideTranslationNotice]) {
         UIView *view = (UIView *)self;
-        view.hidden = YES;
-        view.alpha = 0.0;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
     }
 }
 
 - (CGSize)sizeThatFits:(CGSize)size {
     if ([WDDManager hideTranslationNotice]) {
-        return CGSizeZero;
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
     }
     return %orig;
 }
@@ -558,7 +811,7 @@ static BOOL isConnectorLineView(UIView *subview) {
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
     return [WDDManager hideTranslationNotice] ? NO : %orig;
 }
-- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(id)displayType {
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
     return [WDDManager hideTranslationNotice] ? NO : %orig;
 }
 %end

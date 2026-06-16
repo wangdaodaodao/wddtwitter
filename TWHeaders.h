@@ -155,5 +155,9 @@
 - (NSArray *)representedMediaEntities;
 @end
 
+@interface T1ConversationFocalStatusViewLayoutStateGenerator : NSObject
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState;
+@end
+
 
 

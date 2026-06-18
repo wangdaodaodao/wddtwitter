@@ -847,7 +847,7 @@ static BOOL isFocalContext(UIView *view) {
     TFNItemsDataViewControllerBackingStore *backingStore = self.backingStore;
     NSUInteger sectionCount = [self.sections count];
     if (sectionCount >= 1) {
-        TFNSettingsNavigationItem *wddSettings = [[%c(TFNSettingsNavigationItem) alloc] initWithTitle:@"王导导增强设置" detail:@"自定义推特过滤与界面调整" iconName:nil controllerFactory:^UIViewController *{
+        TFNSettingsNavigationItem *wddSettings = [[%c(TFNSettingsNavigationItem) alloc] initWithTitle:@"WddTwitter" detail:@"自定义推特过滤与界面调整" iconName:nil controllerFactory:^UIViewController *{
             return [[WDDSettingsViewController alloc] initWithAccount:self.account];
         }];
 
@@ -895,7 +895,7 @@ static BOOL isFocalContext(UIView *view) {
     if (indexPath.section == customSectionIndex && indexPath.row == 1) {
         TFNTextCell *tweakCell = [[%c(TFNTextCell) alloc] init];
         [tweakCell setAccessoryType:UITableViewCellAccessoryDisclosureIndicator];
-        [tweakCell.textLabel setText:@"王导导增强设置"];
+        [tweakCell.textLabel setText:@"WddTwitter"];
         return tweakCell;
     } else if (indexPath.section == customSectionIndex && indexPath.row == 0) {
         TFNTextCell *headerCell = [[%c(TFNTextCell) alloc] init];

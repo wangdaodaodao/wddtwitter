@@ -38,7 +38,8 @@
         ];
         
         self.authors = @[
-            @{ @"title": @"王导导", @"username": @"goodwdd", @"avatarURL": @"https://unavatar.io/x/goodwdd" }
+            @{ @"type": @"twitter", @"title": @"王导导", @"username": @"goodwdd", @"avatarURL": @"https://unavatar.io/x/goodwdd" },
+            @{ @"type": @"wechat", @"title": @"关注公众号", @"subtitle": @"王导导 (点击复制并跳转微信)" }
         ];
     }
     return self;
@@ -102,7 +103,7 @@
             NSString *title = setting[@"title"];
             NSString *currentValue = [[NSUserDefaults standardUserDefaults] stringForKey:setting[@"key"]];
             cell.titleLabel.text = title;
-            cell.subtitleLabel.text = currentValue ?: @"未设置";
+            cell.subtitleLabel.text = currentValue ?: setting[@"subtitle"];
             return cell;
         }
     } else {
@@ -144,8 +145,30 @@
         }
     } else if (indexPath.section == 1) {
         NSDictionary *author = self.authors[indexPath.row];
-        [self openTwitterProfileWithUser:author];
+        if ([author[@"type"] isEqualToString:@"wechat"]) {
+            [self followWeChatOfficialAccount];
+        } else {
+            [self openTwitterProfileWithUser:author];
+        }
     }
+}
+
+- (void)followWeChatOfficialAccount {
+    [[UIPasteboard generalPasteboard] setString:@"王导导"];
+    
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"已复制公众号名称"
+                                                                   message:@"公众号名称“王导导”已复制到剪切板，请在微信中搜索关注。"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+                                                            
+    [alert addAction:[UIAlertAction actionWithTitle:@"打开微信" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        NSURL *wechatURL = [NSURL URLWithString:@"weixin://"];
+        if ([[UIApplication sharedApplication] canOpenURL:wechatURL]) {
+            [[UIApplication sharedApplication] openURL:wechatURL options:@{} completionHandler:nil];
+        }
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleCancel handler:nil]];
+    
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (UIView *)headerViewWithTitle:(NSString *)title {
@@ -252,27 +275,34 @@
     nameLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)] ?: [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
     nameLabel.textColor = textColor;
 
-    usernameLabel.text = [NSString stringWithFormat:@"@%@", developer[@"username"]];
+    usernameLabel.text = developer[@"subtitle"] ?: [NSString stringWithFormat:@"@%@", developer[@"username"]];
     usernameLabel.font = [fontGroup performSelector:@selector(subtext2Font)] ?: [UIFont systemFontOfSize:12 weight:UIFontWeightRegular];
     usernameLabel.textColor = subtitleColor;
 
     devChevron.image = [UIImage tfn_vectorImageNamed:@"chevron_right" fitsSize:CGSizeMake(18, 18) fillColor:subtitleColor];
 
-    NSString *avatarURL = developer[@"avatarURL"];
-    objc_setAssociatedObject(avatarImageView, @selector(configureDeveloperCell:withDeveloper:), avatarURL, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    if (avatarURL.length > 0) {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:avatarURL]];
-            UIImage *img = [UIImage imageWithData:data];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                NSString *currentURL = objc_getAssociatedObject(avatarImageView, @selector(configureDeveloperCell:withDeveloper:));
-                if ([currentURL isEqualToString:avatarURL]) {
-                    avatarImageView.image = img ?: [UIImage systemImageNamed:@"person.circle.fill"];
-                }
-            });
-        });
+    NSString *type = developer[@"type"];
+    if ([type isEqualToString:@"wechat"]) {
+        avatarImageView.image = [UIImage systemImageNamed:@"bubble.left.and.bubble.right.fill"] ?: [UIImage systemImageNamed:@"message.fill"];
+        avatarImageView.tintColor = [UIColor systemGreenColor];
     } else {
-        avatarImageView.image = [UIImage systemImageNamed:@"person.circle.fill"];
+        avatarImageView.tintColor = nil;
+        NSString *avatarURL = developer[@"avatarURL"];
+        objc_setAssociatedObject(avatarImageView, @selector(configureDeveloperCell:withDeveloper:), avatarURL, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (avatarURL.length > 0) {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:avatarURL]];
+                UIImage *img = [UIImage imageWithData:data];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSString *currentURL = objc_getAssociatedObject(avatarImageView, @selector(configureDeveloperCell:withDeveloper:));
+                    if ([currentURL isEqualToString:avatarURL]) {
+                        avatarImageView.image = img ?: [UIImage systemImageNamed:@"person.circle.fill"];
+                    }
+                });
+            });
+        } else {
+            avatarImageView.image = [UIImage systemImageNamed:@"person.circle.fill"];
+        }
     }
 }
 
@@ -352,7 +382,7 @@
 }
 
 - (void)setupFooterLabel {
-    UIView *footerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 150)];
+    UIView *footerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 180)];
     footerView.backgroundColor = [BHDimPalette currentBackgroundColor];
 
     UITextView *footerTextView = [[UITextView alloc] init];
@@ -373,17 +403,17 @@
     id colorPalette = [currentPalette colorPalette];
     UIColor *subtitleColor = [colorPalette performSelector:@selector(tabBarItemColor)];
     
-    NSString *line1 = @"WddTwitter v1.0.0 (Stable)\n";
+    NSString *line1 = @"WddTwitter v1.4.0\n";
     NSString *line2 = @"基于 X 版本 11.90\n";
-    NSString *line4 = @"更新请参考：wangdaodao.me/2026/wddtwitter/";
+    NSString *line4 = @"更多信息：wangdaodao.me/2026/wddtwitter/";
     
     NSMutableAttributedString *attrStr = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@%@", line1, line2, line4]];
     NSRange fullRange = NSMakeRange(0, attrStr.length);
     [attrStr addAttributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: subtitleColor} range:fullRange];
     
-    // Add centered paragraph style and line spacing for premium design
+    // Add left-aligned paragraph style and line spacing
     NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
-    paragraphStyle.alignment = NSTextAlignmentCenter;
+    paragraphStyle.alignment = NSTextAlignmentLeft;
     paragraphStyle.lineSpacing = 4.0;
     [attrStr addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:fullRange];
     
@@ -398,7 +428,7 @@
         [footerTextView.leadingAnchor constraintEqualToAnchor:footerView.leadingAnchor constant:20],
         [footerTextView.trailingAnchor constraintEqualToAnchor:footerView.trailingAnchor constant:-20],
         [footerTextView.topAnchor constraintEqualToAnchor:footerView.topAnchor constant:15],
-        [footerTextView.bottomAnchor constraintLessThanOrEqualToAnchor:footerView.bottomAnchor constant:-40]
+        [footerTextView.bottomAnchor constraintLessThanOrEqualToAnchor:footerView.bottomAnchor constant:-110]
     ]];
 
     self.tableView.tableFooterView = footerView;

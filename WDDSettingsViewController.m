@@ -46,7 +46,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"王导导推特增强";
+    self.title = @"WddTwitter";
     self.view.backgroundColor = [BHDimPalette currentBackgroundColor];
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
@@ -352,7 +352,7 @@
 }
 
 - (void)setupFooterLabel {
-    UIView *footerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 120)];
+    UIView *footerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 150)];
     footerView.backgroundColor = [BHDimPalette currentBackgroundColor];
 
     UITextView *footerTextView = [[UITextView alloc] init];
@@ -373,13 +373,19 @@
     id colorPalette = [currentPalette colorPalette];
     UIColor *subtitleColor = [colorPalette performSelector:@selector(tabBarItemColor)];
     
-    NSString *line1 = @"WDDTwitter v1.0.0 (Stable)\n";
+    NSString *line1 = @"WddTwitter v1.0.0 (Stable)\n";
     NSString *line2 = @"基于 X 版本 11.90\n";
     NSString *line4 = @"更新请参考：wangdaodao.me/2026/wddtwitter/";
     
     NSMutableAttributedString *attrStr = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@%@", line1, line2, line4]];
     NSRange fullRange = NSMakeRange(0, attrStr.length);
     [attrStr addAttributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: subtitleColor} range:fullRange];
+    
+    // Add centered paragraph style and line spacing for premium design
+    NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+    paragraphStyle.alignment = NSTextAlignmentCenter;
+    paragraphStyle.lineSpacing = 4.0;
+    [attrStr addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:fullRange];
     
     // Add links
     [attrStr addAttribute:NSLinkAttributeName value:@"https://wangdaodao.me/2026/wddtwitter/" range:[attrStr.string rangeOfString:@"wangdaodao.me/2026/wddtwitter/"]];
@@ -391,7 +397,8 @@
     [NSLayoutConstraint activateConstraints:@[
         [footerTextView.leadingAnchor constraintEqualToAnchor:footerView.leadingAnchor constant:20],
         [footerTextView.trailingAnchor constraintEqualToAnchor:footerView.trailingAnchor constant:-20],
-        [footerTextView.topAnchor constraintEqualToAnchor:footerView.topAnchor constant:15]
+        [footerTextView.topAnchor constraintEqualToAnchor:footerView.topAnchor constant:15],
+        [footerTextView.bottomAnchor constraintLessThanOrEqualToAnchor:footerView.bottomAnchor constant:-40]
     ]];
 
     self.tableView.tableFooterView = footerView;

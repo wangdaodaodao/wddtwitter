@@ -29,20 +29,26 @@ static BOOL shouldHideTweetByKeywords(id item) {
             if (text && text.length > 0) {
                 // 1. Emoji Filter Logic (Bot cleanup)
                 if ([WDDManager enableEmojiFilter]) {
-                    // Check for Chinese characters
-                    NSRegularExpression *chineseRegex = [NSRegularExpression regularExpressionWithPattern:@"[\\u4e00-\\u9fa5]" options:0 error:NULL];
+                    static NSRegularExpression *chineseRegex = nil;
+                    static NSRegularExpression *emojiRegex = nil;
+                    static NSRegularExpression *alphaNumRegex = nil;
+                    static dispatch_once_t onceToken;
+                    dispatch_once(&onceToken, ^{
+                        chineseRegex = [NSRegularExpression regularExpressionWithPattern:@"[\\u4e00-\\u9fa5]" options:0 error:NULL];
+                        emojiRegex = [NSRegularExpression regularExpressionWithPattern:@"\\p{Emoji_Presentation}|\\p{Emoji}\\uFE0F" options:0 error:NULL];
+                        alphaNumRegex = [NSRegularExpression regularExpressionWithPattern:@"[a-zA-Z0-9]" options:0 error:NULL];
+                    });
+                    
                     NSUInteger chineseCount = [chineseRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
                     
                     if (chineseCount == 0) {
                         // Check if it has more than 3 emojis
-                        NSRegularExpression *emojiRegex = [NSRegularExpression regularExpressionWithPattern:@"\\p{Emoji_Presentation}|\\p{Emoji}\\uFE0F" options:0 error:NULL];
                         NSUInteger emojiCount = [emojiRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
                         if (emojiCount > 3) {
                             return YES;
                         }
                         
                         // If no Chinese and <= 3 emojis, check for letters/numbers
-                        NSRegularExpression *alphaNumRegex = [NSRegularExpression regularExpressionWithPattern:@"[a-zA-Z0-9]" options:0 error:NULL];
                         NSUInteger alphaNumCount = [alphaNumRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
                         
                         if (alphaNumCount == 0) {
@@ -56,20 +62,39 @@ static BOOL shouldHideTweetByKeywords(id item) {
                 if ([WDDManager enableRegexFilter]) {
                     NSString *regexesStr = [WDDManager replyRegexes];
                     if (regexesStr != nil && regexesStr.length > 0) {
-                        NSArray *lines = [regexesStr componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
-                        for (NSString *line in lines) {
-                            NSString *pattern = [line stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-                            if (pattern.length > 0) {
-                                NSError *error = nil;
-                                NSRegularExpression *customRegex = [NSRegularExpression regularExpressionWithPattern:pattern
-                                                                                                             options:NSRegularExpressionDotMatchesLineSeparators
-                                                                                                               error:&error];
-                                if (!error && customRegex != nil) {
-                                    NSUInteger matchCount = [customRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
-                                    if (matchCount > 0) {
-                                        return YES;
+                        static NSString *cachedRegexesStr = nil;
+                        static NSArray<NSRegularExpression *> *cachedRegexObjects = nil;
+                        static NSObject *lockObj = nil;
+                        static dispatch_once_t lockOnce;
+                        dispatch_once(&lockOnce, ^{
+                            lockObj = [[NSObject alloc] init];
+                        });
+                        
+                        @synchronized(lockObj) {
+                            if (![regexesStr isEqualToString:cachedRegexesStr]) {
+                                cachedRegexesStr = [regexesStr copy];
+                                NSMutableArray *compiledArray = [NSMutableArray array];
+                                NSArray *lines = [regexesStr componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+                                for (NSString *line in lines) {
+                                    NSString *pattern = [line stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+                                    if (pattern.length > 0) {
+                                        NSError *error = nil;
+                                        NSRegularExpression *customRegex = [NSRegularExpression regularExpressionWithPattern:pattern
+                                                                                                                     options:NSRegularExpressionDotMatchesLineSeparators
+                                                                                                                       error:&error];
+                                        if (!error && customRegex != nil) {
+                                            [compiledArray addObject:customRegex];
+                                        }
                                     }
                                 }
+                                cachedRegexObjects = [compiledArray copy];
+                            }
+                        }
+                        
+                        for (NSRegularExpression *customRegex in cachedRegexObjects) {
+                            NSUInteger matchCount = [customRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
+                            if (matchCount > 0) {
+                                return YES;
                             }
                         }
                     }
@@ -284,22 +309,15 @@ static BOOL isConnectorLineView(UIView *subview) {
     return NO;
 }
 
-%hook T1StatusView
-- (void)setFrame:(CGRect)frame {
-    if ([WDDManager hideAvatar]) {
-        frame.size.width = [UIScreen mainScreen].bounds.size.width;
-    }
-    %orig(frame);
-}
-
-- (void)layoutSubviews {
-    %orig;
+static void adjustStatusViewLayout(UIView *statusView) {
+    if (!statusView) return;
+    
     if ([WDDManager hideReplyToIndicator]) {
         id viewModel = nil;
-        if ([(id)self respondsToSelector:@selector(viewModel)]) {
-            viewModel = [(id)self viewModel];
+        if ([statusView respondsToSelector:@selector(viewModel)]) {
+            viewModel = [statusView performSelector:@selector(viewModel)];
         }
-        for (UIView *subview in ((UIView *)self).subviews) {
+        for (UIView *subview in statusView.subviews) {
             NSString *className = NSStringFromClass([subview class]);
             if ([className rangeOfString:@"SocialContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
                 if (isViewModelReply(viewModel)) {
@@ -319,9 +337,10 @@ static BOOL isConnectorLineView(UIView *subview) {
             }
         }
     }
+    
     if ([WDDManager hideAvatar]) {
         CGFloat margin = 12.0;
-        for (UIView *subview in ((UIView *)self).subviews) {
+        for (UIView *subview in statusView.subviews) {
             CGRect f = subview.frame;
             if (isConnectorLineView(subview)) {
                 subview.hidden = YES;
@@ -341,13 +360,26 @@ static BOOL isConnectorLineView(UIView *subview) {
             } else if (!subview.hidden && subview.alpha > 0.1) {
                 if (f.origin.x >= 30.0) {
                     f.origin.x = margin;
-                    f.size.width = ((UIView *)self).bounds.size.width - (margin * 2);
+                    f.size.width = statusView.bounds.size.width - (margin * 2);
                     subview.frame = f;
-                    [((UIView *)self) bringSubviewToFront:subview];
+                    [statusView bringSubviewToFront:subview];
                 }
             }
         }
     }
+}
+
+%hook T1StatusView
+- (void)setFrame:(CGRect)frame {
+    if ([WDDManager hideAvatar]) {
+        frame.size.width = [UIScreen mainScreen].bounds.size.width;
+    }
+    %orig(frame);
+}
+
+- (void)layoutSubviews {
+    %orig;
+    adjustStatusViewLayout((UIView *)self);
 }
 %end
 
@@ -361,60 +393,7 @@ static BOOL isConnectorLineView(UIView *subview) {
 
 - (void)layoutSubviews {
     %orig;
-    if ([WDDManager hideReplyToIndicator]) {
-        id viewModel = nil;
-        if ([(id)self respondsToSelector:@selector(viewModel)]) {
-            viewModel = [(id)self viewModel];
-        }
-        for (UIView *subview in ((UIView *)self).subviews) {
-            NSString *className = NSStringFromClass([subview class]);
-            if ([className rangeOfString:@"SocialContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
-                if (isViewModelReply(viewModel)) {
-                    subview.hidden = YES;
-                    subview.alpha = 0.0;
-                    CGRect f = subview.frame;
-                    f.size.height = 0.0;
-                    subview.frame = f;
-                }
-            } else if ([className rangeOfString:@"TweetContext" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-                       [className rangeOfString:@"ConversationContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
-                subview.hidden = YES;
-                subview.alpha = 0.0;
-                CGRect f = subview.frame;
-                f.size.height = 0.0;
-                subview.frame = f;
-            }
-        }
-    }
-    if ([WDDManager hideAvatar]) {
-        CGFloat margin = 12.0;
-        for (UIView *subview in ((UIView *)self).subviews) {
-            CGRect f = subview.frame;
-            if (isConnectorLineView(subview)) {
-                subview.hidden = YES;
-                subview.frame = CGRectZero;
-                continue;
-            }
-            for (UIView *innerView in subview.subviews) {
-                if (isConnectorLineView(innerView)) {
-                    innerView.hidden = YES;
-                    innerView.frame = CGRectZero;
-                }
-            }
-            if (f.origin.x < 10.0 && f.size.width < 65.0 && f.size.width > 0) {
-                subview.hidden = YES;
-                subview.userInteractionEnabled = NO;
-                subview.frame = CGRectZero;
-            } else if (!subview.hidden && subview.alpha > 0.1) {
-                if (f.origin.x >= 30.0) {
-                    f.origin.x = margin;
-                    f.size.width = ((UIView *)self).bounds.size.width - (margin * 2);
-                    subview.frame = f;
-                    [((UIView *)self) bringSubviewToFront:subview];
-                }
-            }
-        }
-    }
+    adjustStatusViewLayout((UIView *)self);
 }
 %end
 

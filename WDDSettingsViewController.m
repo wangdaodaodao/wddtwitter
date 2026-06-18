@@ -259,12 +259,16 @@
     devChevron.image = [UIImage tfn_vectorImageNamed:@"chevron_right" fitsSize:CGSizeMake(18, 18) fillColor:subtitleColor];
 
     NSString *avatarURL = developer[@"avatarURL"];
+    objc_setAssociatedObject(avatarImageView, @selector(configureDeveloperCell:withDeveloper:), avatarURL, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     if (avatarURL.length > 0) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:avatarURL]];
             UIImage *img = [UIImage imageWithData:data];
             dispatch_async(dispatch_get_main_queue(), ^{
-                avatarImageView.image = img ?: [UIImage systemImageNamed:@"person.circle.fill"];
+                NSString *currentURL = objc_getAssociatedObject(avatarImageView, @selector(configureDeveloperCell:withDeveloper:));
+                if ([currentURL isEqualToString:avatarURL]) {
+                    avatarImageView.image = img ?: [UIImage systemImageNamed:@"person.circle.fill"];
+                }
             });
         });
     } else {

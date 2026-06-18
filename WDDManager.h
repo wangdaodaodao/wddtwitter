@@ -20,4 +20,5 @@
 + (BOOL)hideAccountLabels;
 + (BOOL)hideDisclosureLabels;
 + (BOOL)hideTimelineViewCount;
++ (BOOL)disableLongPressMenu;
 @end

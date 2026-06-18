@@ -63,4 +63,8 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_timeline_view_count"];
 }
 
++ (BOOL)disableLongPressMenu {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_disable_long_press_menu"];
+}
+
 @end

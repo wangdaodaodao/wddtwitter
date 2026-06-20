@@ -12,3 +12,8 @@ TrollFools_*
 libflex/FLEX/
 *.zip
 ipa_extracted*
+.cursorrules
+.clinerules
+.agentrules
+.windsurfrules
+.agents/

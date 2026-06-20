@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = wddtwitter
 
-wddtwitter_FILES = WDDTweak.x WDDSettingsViewController.m WDDUIComponents.m BHDimPalette.m WDDManager.m
+wddtwitter_FILES = WDDTweak.x WDDSettingsViewController.m WDDUIComponents.m BHDimPalette.m WDDManager.m WDDUtils.m WDDFilters.x WDDLayout.x WDDGrok.x WDDViewCount.x WDDGestures.x WDDSettings.x
 wddtwitter_FRAMEWORKS = UIKit Foundation CoreGraphics Photos
 wddtwitter_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-function
 

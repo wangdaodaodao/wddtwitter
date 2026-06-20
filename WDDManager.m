@@ -67,4 +67,8 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_disable_long_press_menu"];
 }
 
++ (BOOL)hideGrokButtons {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"wdd_hide_grok_buttons"];
+}
+
 @end

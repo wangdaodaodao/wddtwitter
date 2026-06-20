@@ -21,4 +21,5 @@
 + (BOOL)hideDisclosureLabels;
 + (BOOL)hideTimelineViewCount;
 + (BOOL)disableLongPressMenu;
++ (BOOL)hideGrokButtons;
 @end

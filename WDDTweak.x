@@ -831,6 +831,554 @@ static BOOL isFocalContext(UIView *view) {
 %end
 
 // ==============================
+// Hide Grok Buttons
+// ==============================
+
+%hook T1StandardStatusEditWithGrokButtonViewAdapter
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+%end
+
+%hook T1StandardStatusGrokEditPhotoButtonAdapter
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+%end
+
+%hook T1StandardStatusDownloadGrokImagineButtonViewAdapter
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+%end
+
+%hook T1StandardStatusGrokCreateOwnButtonAdapter
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+%end
+
+%hook T1StandardStatusAskGrokButtonViewAdapter
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
+    if ([WDDManager hideGrokButtons]) {
+        if (isFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+%end
+
+%hook T1StatusPostCtaGrokDownloadView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook StatusPostCtaGrokDownloadView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook T1StandardStatusEditWithGrokButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook StandardStatusEditWithGrokButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook T1StandardStatusAskGrokButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook StandardStatusAskGrokButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook T1GrokEditPhotoButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook GrokEditPhotoButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook GrokCreateOwnVideoButtonView
+- (id)initWithFrame:(CGRect)frame {
+    id result = %orig(frame);
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (id)init {
+    id result = %orig;
+    if (result && [WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)result)) {
+            UIView *view = (UIView *)result;
+            view.hidden = YES;
+            view.alpha = 0.0;
+        }
+    }
+    return result;
+}
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideGrokButtons]) {
+        UIView *view = (UIView *)self;
+        if (!isFocalContext(view)) {
+            view.hidden = YES;
+            view.alpha = 0.0;
+        } else {
+            view.hidden = NO;
+            view.alpha = 1.0;
+        }
+    }
+}
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideGrokButtons]) {
+        if (!isFocalContext((UIView *)self)) {
+            return CGSizeZero;
+        }
+    }
+    return %orig;
+}
+%end
+
+%hook TPSTwitterFeatureSwitches
+- (BOOL)boolForKey:(NSString *)key {
+    if ([WDDManager hideGrokButtons]) {
+        if ([key isEqualToString:@"grok_chat_download_standalone_button_enabled"] ||
+            [key isEqualToString:@"grok_explain_download_banner_enabled"] ||
+            [key isEqualToString:@"grok_ios_app_campaign_grok_chat_download_banner"] ||
+            [key isEqualToString:@"grok_ios_app_campaign_grok_posts"] ||
+            [key isEqualToString:@"dash_items_download_grok_enabled"] ||
+            [key isEqualToString:@"grok_immersive_create_own_button_enabled"] ||
+            [key isEqualToString:@"grok_timeline_create_own_is_enabled"] ||
+            [key isEqualToString:@"grok_timeline_create_own_is_enabled_detail_page"] ||
+            [key isEqualToString:@"grok_timeline_create_own_is_enabled_quoted_status"] ||
+            [key isEqualToString:@"grok_edit_with_grok_button_under_post_focal_enabled"] ||
+            [key isEqualToString:@"grok_edit_with_grok_button_under_post_preview_enabled"] ||
+            [key isEqualToString:@"grok_ask_grok_button_under_post_focal_enabled"] ||
+            [key isEqualToString:@"grok_ask_grok_button_under_post_preview_enabled"] ||
+            [key isEqualToString:@"grok_ios_edit_photo_post_button_enabled"] ||
+            [key isEqualToString:@"ios_composer_grok_button_enabled"]) {
+            return NO;
+        }
+    }
+    return %orig;
+}
+%end
+
+// ==============================
 // Settings Page Entry Injection
 // ==============================
 

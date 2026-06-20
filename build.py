@@ -12,15 +12,24 @@ if not os.path.exists(packages_dir):
 
 # Count .deb files in packages
 deb_files = [f for f in os.listdir(packages_dir) if f.endswith('.deb')]
-count = len(deb_files)
 
-# If no package exists, use 1.0.0. Otherwise, use 1.0.0-count
-if count == 0:
-    version = "1.0.0"
+max_suffix = -1
+for f in deb_files:
+    match = re.search(r'1\.0\.0-(\d+)', f)
+    if match:
+        val = int(match.group(1))
+        if val > max_suffix:
+            max_suffix = val
+
+if max_suffix == -1:
+    if len(deb_files) == 0:
+        version = "1.0.0"
+    else:
+        version = f"1.0.0-{len(deb_files)}"
 else:
-    version = f"1.0.0-{count}"
+    version = f"1.0.0-{max_suffix + 1}"
 
-print(f"=== Detected {count} existing package(s). Next version: {version} ===")
+print(f"=== Detected {len(deb_files)} existing package(s). Next version: {version} ===")
 
 # Read control file
 with open(control_file, 'r') as f:

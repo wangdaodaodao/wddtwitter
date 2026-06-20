@@ -9,14 +9,25 @@
 
 static BOOL isTargetCellOrStatusView(UIView *view) {
     if (!view) return NO;
-    NSString *className = NSStringFromClass([view class]);
-    if ([className isEqualToString:@"T1StatusView"] ||
-        [className isEqualToString:@"T1StandardStatusView"] ||
-        [view isKindOfClass:objc_getClass("UITableViewCell")]) {
+    
+    static Class t1StatusViewClass = nil;
+    static Class t1StandardStatusViewClass = nil;
+    static Class tableViewCellClass = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        t1StatusViewClass = objc_getClass("T1StatusView");
+        t1StandardStatusViewClass = objc_getClass("T1StandardStatusView");
+        tableViewCellClass = objc_getClass("UITableViewCell");
+    });
+    
+    if ([view isKindOfClass:t1StatusViewClass] || 
+        [view isKindOfClass:t1StandardStatusViewClass] || 
+        [view isKindOfClass:tableViewCellClass]) {
         return YES;
     }
+    
     UIView *sup = view.superview;
-    if (sup && [sup isKindOfClass:objc_getClass("UITableViewCell")]) {
+    if (sup && [sup isKindOfClass:tableViewCellClass]) {
         return YES;
     }
     return NO;

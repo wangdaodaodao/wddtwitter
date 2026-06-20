@@ -13,7 +13,22 @@ static BOOL shouldHideTweetByKeywords(id item) {
         status = ((id (*)(id, SEL))objc_msgSend)(item, @selector(status));
     }
     
-    if (status && [status respondsToSelector:@selector(isReply)]) {
+    if (!status) return NO;
+    
+    // Check cache validity against current settings version
+    static char kWDDTweetHideCacheKey;
+    static char kWDDTweetHideVersionKey;
+    
+    NSInteger currentVersion = [WDDManager filterConfigVersion];
+    NSNumber *cachedResult = objc_getAssociatedObject(status, &kWDDTweetHideCacheKey);
+    NSNumber *cachedVersion = objc_getAssociatedObject(status, &kWDDTweetHideVersionKey);
+    
+    if (cachedResult != nil && cachedVersion != nil && [cachedVersion integerValue] == currentVersion) {
+        return [cachedResult boolValue];
+    }
+    
+    BOOL shouldHide = NO;
+    if ([status respondsToSelector:@selector(isReply)]) {
         BOOL isReply = ((BOOL (*) (id, SEL))objc_msgSend)(status, @selector(isReply));
         if (isReply) {
             NSString *text = nil;
@@ -42,21 +57,20 @@ static BOOL shouldHideTweetByKeywords(id item) {
                         // Check if it has more than 3 emojis
                         NSUInteger emojiCount = [emojiRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
                         if (emojiCount > 3) {
-                            return YES;
-                        }
-                        
-                        // If no Chinese and <= 3 emojis, check for letters/numbers
-                        NSUInteger alphaNumCount = [alphaNumRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
-                        
-                        if (alphaNumCount == 0) {
-                            // No Chinese and No AlphaNumeric -> Pure Emoji/Symbols/Spam
-                            return YES;
+                            shouldHide = YES;
+                        } else {
+                            // If no Chinese and <= 3 emojis, check for letters/numbers
+                            NSUInteger alphaNumCount = [alphaNumRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
+                            if (alphaNumCount == 0) {
+                                // No Chinese and No AlphaNumeric -> Pure Emoji/Symbols/Spam
+                                shouldHide = YES;
+                            }
                         }
                     }
                 }
 
                 // 1.5 Custom Regex Filter Logic
-                if ([WDDManager enableRegexFilter]) {
+                if (!shouldHide && [WDDManager enableRegexFilter]) {
                     NSString *regexesStr = [WDDManager replyRegexes];
                     if (regexesStr != nil && regexesStr.length > 0) {
                         static NSString *cachedRegexesStr = nil;
@@ -78,7 +92,7 @@ static BOOL shouldHideTweetByKeywords(id item) {
                                         NSError *error = nil;
                                         NSRegularExpression *customRegex = [NSRegularExpression regularExpressionWithPattern:pattern
                                                                                                                      options:NSRegularExpressionDotMatchesLineSeparators
-                                                                                                                       error:&error];
+                                                                                                                        error:&error];
                                         if (!error && customRegex != nil) {
                                             [compiledArray addObject:customRegex];
                                         }
@@ -91,14 +105,15 @@ static BOOL shouldHideTweetByKeywords(id item) {
                         for (NSRegularExpression *customRegex in cachedRegexObjects) {
                             NSUInteger matchCount = [customRegex numberOfMatchesInString:text options:0 range:NSMakeRange(0, text.length)];
                             if (matchCount > 0) {
-                                return YES;
+                                shouldHide = YES;
+                                break;
                             }
                         }
                     }
                 }
 
                 // 2. Keyword Filter Logic
-                if ([WDDManager enableReplyFilter]) {
+                if (!shouldHide && [WDDManager enableReplyFilter]) {
                     NSString *keywordsStr = [WDDManager replyKeywords];
                     if (keywordsStr != nil && keywordsStr.length > 0) {
                         // Support both English and Chinese commas
@@ -108,18 +123,24 @@ static BOOL shouldHideTweetByKeywords(id item) {
                             NSString *trimmed = [keyword stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
                             if (trimmed.length > 0 && [text rangeOfString:trimmed options:NSCaseInsensitiveSearch].location != NSNotFound) {
                                 totalMatches++;
+                                break;
                             }
                         }
                         // Match if any keyword is found
                         if (totalMatches > 0) {
-                            return YES;
+                            shouldHide = YES;
                         }
                     }
                 }
             }
         }
     }
-    return NO;
+    
+    // Save to cache
+    objc_setAssociatedObject(status, &kWDDTweetHideCacheKey, @(shouldHide), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(status, &kWDDTweetHideVersionKey, @(currentVersion), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    return shouldHide;
 }
 
 %hook TFNItemsDataViewController

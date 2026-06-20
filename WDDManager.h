@@ -22,4 +22,5 @@
 + (BOOL)hideTimelineViewCount;
 + (BOOL)disableLongPressMenu;
 + (BOOL)hideGrokButtons;
++ (NSInteger)filterConfigVersion;
 @end

@@ -9,6 +9,11 @@
 static void swizzleMethod(Class cls, SEL sel, IMP newImp, NSString *origPrefix) {
     if (!cls || !sel || !newImp) return;
     
+    // Fast check: if the class hierarchy does not respond to the selector, skip copying lists
+    if (!class_getInstanceMethod(cls, sel)) {
+        return;
+    }
+    
     BOOL definesMethod = NO;
     unsigned int count = 0;
     Method *methods = class_copyMethodList(cls, &count);

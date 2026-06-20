@@ -112,22 +112,95 @@
 // Avatar Hiding and Layout Adjustment
 // ==============================
 
+typedef NS_ENUM(NSInteger, WDDContextViewType) {
+    WDDContextViewTypeNone,
+    WDDContextViewTypeSocial,
+    WDDContextViewTypeTweet,
+    WDDContextViewTypeConversation
+};
+
+static BOOL isAvatarClass(Class cls) {
+    if (!cls) return NO;
+    static NSMutableDictionary<Class, NSNumber *> *cache = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cache = [[NSMutableDictionary alloc] init];
+    });
+    @synchronized(cache) {
+        NSNumber *cached = cache[(id)cls];
+        if (cached) {
+            return [cached boolValue];
+        }
+        NSString *className = NSStringFromClass(cls);
+        BOOL result = [className rangeOfString:@"Avatar" options:NSCaseInsensitiveSearch].location != NSNotFound;
+        cache[(id)cls] = @(result);
+        return result;
+    }
+}
+
+static WDDContextViewType contextViewTypeForClass(Class cls) {
+    if (!cls) return WDDContextViewTypeNone;
+    
+    static NSMutableDictionary<Class, NSNumber *> *cache = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cache = [[NSMutableDictionary alloc] init];
+    });
+    
+    @synchronized(cache) {
+        NSNumber *cachedType = cache[(id)cls];
+        if (cachedType) {
+            return [cachedType integerValue];
+        }
+        
+        NSString *className = NSStringFromClass(cls);
+        WDDContextViewType type = WDDContextViewTypeNone;
+        if ([className rangeOfString:@"SocialContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            type = WDDContextViewTypeSocial;
+        } else if ([className rangeOfString:@"TweetContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            type = WDDContextViewTypeTweet;
+        } else if ([className rangeOfString:@"ConversationContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            type = WDDContextViewTypeConversation;
+        }
+        
+        cache[(id)cls] = @(type);
+        return type;
+    }
+}
+
 // Helper: detect if a subview is a conversation connector line.
 static BOOL isConnectorLineView(UIView *subview) {
     if (!subview) return NO;
-    NSString *className = NSStringFromClass([subview class]);
-    if ([className rangeOfString:@"ConversationConnectorView"].location != NSNotFound ||
-        [className rangeOfString:@"T1StandardStatusConversationConnectorsView"].location != NSNotFound ||
-        [className rangeOfString:@"T1ConversationTreeConnectorsView"].location != NSNotFound ||
-        [className rangeOfString:@"T1CurvedLine"].location != NSNotFound) {
+    
+    static Class conversationConnectorViewClass = nil;
+    static Class t1StandardStatusConversationConnectorsViewClass = nil;
+    static Class t1ConversationTreeConnectorsViewClass = nil;
+    static Class t1CurvedLineClass = nil;
+    static Class tfnRoundedCornerViewClass = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        conversationConnectorViewClass = objc_getClass("ConversationConnectorView");
+        t1StandardStatusConversationConnectorsViewClass = objc_getClass("T1StandardStatusConversationConnectorsView");
+        t1ConversationTreeConnectorsViewClass = objc_getClass("T1ConversationTreeConnectorsView");
+        t1CurvedLineClass = objc_getClass("T1CurvedLine");
+        tfnRoundedCornerViewClass = objc_getClass("TFNRoundedCornerView");
+    });
+    
+    Class cls = [subview class];
+    if ([subview isKindOfClass:conversationConnectorViewClass] ||
+        [subview isKindOfClass:t1StandardStatusConversationConnectorsViewClass] ||
+        [subview isKindOfClass:t1ConversationTreeConnectorsViewClass] ||
+        [subview isKindOfClass:t1CurvedLineClass]) {
         return YES;
     }
-    if ([className rangeOfString:@"TFNRoundedCornerView"].location != NSNotFound) {
+    
+    if ([subview isKindOfClass:tfnRoundedCornerViewClass]) {
         CGRect f = subview.frame;
         if (f.size.width > 0 && f.size.width <= 6.0) {
             return YES;
         }
     }
+    
     CGRect f = subview.frame;
     if (f.size.width <= 0 || f.size.height <= 0) return NO;
     if (f.size.width > 6.0) return NO;
@@ -149,8 +222,8 @@ static void adjustStatusViewLayout(UIView *statusView) {
             viewModel = [statusView performSelector:@selector(viewModel)];
         }
         for (UIView *subview in statusView.subviews) {
-            NSString *className = NSStringFromClass([subview class]);
-            if ([className rangeOfString:@"SocialContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            WDDContextViewType type = contextViewTypeForClass([subview class]);
+            if (type == WDDContextViewTypeSocial) {
                 if (WDDIsViewModelReply(viewModel)) {
                     subview.hidden = YES;
                     subview.alpha = 0.0;
@@ -158,8 +231,7 @@ static void adjustStatusViewLayout(UIView *statusView) {
                     f.size.height = 0.0;
                     subview.frame = f;
                 }
-            } else if ([className rangeOfString:@"TweetContext" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-                       [className rangeOfString:@"ConversationContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            } else if (type == WDDContextViewTypeTweet || type == WDDContextViewTypeConversation) {
                 subview.hidden = YES;
                 subview.alpha = 0.0;
                 CGRect f = subview.frame;
@@ -380,8 +452,7 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
     if ([WDDManager hideAvatar]) {
         UIView *avatarView = nil;
         for (UIView *subview in ((UIView *)self).subviews) {
-            NSString *className = NSStringFromClass([subview class]);
-            if ([className rangeOfString:@"Avatar" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            if (isAvatarClass([subview class])) {
                 avatarView = subview;
                 break;
             }

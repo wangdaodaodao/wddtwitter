@@ -13,16 +13,42 @@
 %hook T1StandardStatusTranslateLayoutState
 - (BOOL)isTranslatable {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
-            return %orig;
+        NSNumber *associated = objc_getAssociatedObject(self, @selector(isTranslatable));
+        if (associated) {
+            return [associated boolValue] ? %orig : NO;
         }
-        return NO;
+        
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        
+        objc_setAssociatedObject(self, @selector(isTranslatable), @(isFocal), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        return isFocal ? %orig : NO;
     }
     return %orig;
 }
+
 - (void)setTranslatable:(BOOL)translatable {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSNumber *associated = objc_getAssociatedObject(self, @selector(isTranslatable));
+        BOOL isFocal = NO;
+        if (associated) {
+            isFocal = [associated boolValue];
+        } else {
+            NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+            if (threadDict[@"WDDIsFocalLayout"]) {
+                isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+            } else {
+                isFocal = WDDActiveViewControllerIsDetail;
+            }
+            objc_setAssociatedObject(self, @selector(isTranslatable), @(isFocal), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+        
+        if (isFocal) {
             %orig(translatable);
         } else {
             %orig(NO);
@@ -36,7 +62,14 @@
 %hook T1StandardStatusTranslateAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -45,7 +78,14 @@
 }
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -57,7 +97,14 @@
 %hook T1StandardStatusGrokTranslateButtonViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -66,7 +113,14 @@
 }
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -78,7 +132,14 @@
 %hook T1StandardStatusGrokAutoTranslateAnnotationViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -87,7 +148,14 @@
 }
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -99,7 +167,14 @@
 %hook T1StandardStatusGrokAutoTranslateToggleViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -108,7 +183,14 @@
 }
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel displayType:(long long)displayType {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        if (isFocal) {
             return %orig;
         }
         return NO;
@@ -121,7 +203,9 @@
 - (id)initWithFrame:(CGRect)frame {
     id result = %orig(frame);
     if (result && [WDDManager hideTranslationNotice]) {
-        if (!WDDIsFocalContext((UIView *)result)) {
+        BOOL isFocal = WDDIsFocalContext((UIView *)result);
+        objc_setAssociatedObject(result, @selector(layoutSubviews), @(isFocal), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (!isFocal) {
             UIView *view = (UIView *)result;
             view.hidden = YES;
             view.alpha = 0.0;
@@ -133,7 +217,9 @@
 - (id)init {
     id result = %orig;
     if (result && [WDDManager hideTranslationNotice]) {
-        if (!WDDIsFocalContext((UIView *)result)) {
+        BOOL isFocal = WDDIsFocalContext((UIView *)result);
+        objc_setAssociatedObject(result, @selector(layoutSubviews), @(isFocal), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (!isFocal) {
             UIView *view = (UIView *)result;
             view.hidden = YES;
             view.alpha = 0.0;
@@ -145,8 +231,10 @@
 - (void)layoutSubviews {
     %orig;
     if ([WDDManager hideTranslationNotice]) {
-        UIView *view = (UIView *)self;
-        if (!WDDIsFocalContext(view)) {
+        NSNumber *associated = objc_getAssociatedObject(self, @selector(layoutSubviews));
+        BOOL isFocal = associated ? [associated boolValue] : WDDIsFocalContext((UIView *)self);
+        if (!isFocal) {
+            UIView *view = (UIView *)self;
             view.hidden = YES;
             view.alpha = 0.0;
         }
@@ -155,11 +243,13 @@
 
 - (CGSize)sizeThatFits:(CGSize)size {
     if ([WDDManager hideTranslationNotice]) {
-        if (!WDDIsFocalContext((UIView *)self)) {
+        NSNumber *associated = objc_getAssociatedObject(self, @selector(layoutSubviews));
+        BOOL isFocal = associated ? [associated boolValue] : WDDIsFocalContext((UIView *)self);
+        if (!isFocal) {
             return CGSizeZero;
         }
     }
-    return %orig;
+    return %orig(size);
 }
 %end
 
@@ -736,10 +826,21 @@
 %hook ClassName
 - (BOOL)isTranslatable {
     if ([WDDManager hideTranslationNotice]) {
-        if (WDDIsFocalContext(nil)) {
-            return %orig;
+        NSNumber *associated = objc_getAssociatedObject(self, @selector(isTranslatable));
+        if (associated) {
+            return [associated boolValue] ? %orig : NO;
         }
-        return NO;
+        
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        BOOL isFocal = NO;
+        if (threadDict[@"WDDIsFocalLayout"]) {
+            isFocal = [threadDict[@"WDDIsFocalLayout"] boolValue];
+        } else {
+            isFocal = WDDActiveViewControllerIsDetail;
+        }
+        
+        objc_setAssociatedObject(self, @selector(isTranslatable), @(isFocal), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        return isFocal ? %orig : NO;
     }
     return %orig;
 }

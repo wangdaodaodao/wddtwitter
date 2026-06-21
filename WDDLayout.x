@@ -978,6 +978,16 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     if ([className hasPrefix:@"UI"] || [className hasPrefix:@"_"]) {
         return;
     }
+    
+    // 过滤普通的 containment 子控制器（如视频、广告或卡片内部控制器），防止它们污染当前活动页面的判定
+    UIViewController *parent = self.parentViewController;
+    if (parent && 
+        ![parent isKindOfClass:[UINavigationController class]] && 
+        ![parent isKindOfClass:[UITabBarController class]] &&
+        ![parent isKindOfClass:objc_getClass("TFNTabbedViewController")]) {
+        return;
+    }
+    
     WDDActiveViewController = self;
     WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
 }
@@ -988,6 +998,15 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     if ([className hasPrefix:@"UI"] || [className hasPrefix:@"_"]) {
         return;
     }
+    
+    UIViewController *parent = self.parentViewController;
+    if (parent && 
+        ![parent isKindOfClass:[UINavigationController class]] && 
+        ![parent isKindOfClass:[UITabBarController class]] &&
+        ![parent isKindOfClass:objc_getClass("TFNTabbedViewController")]) {
+        return;
+    }
+    
     WDDActiveViewController = self;
     WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
 }

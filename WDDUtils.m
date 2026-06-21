@@ -42,6 +42,18 @@ BOOL WDDActiveViewControllerIsDetail = NO;
 static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
     if (!vc) return NO;
     
+    // 0. Recursively check parents to support child view controllers correctly
+    UIViewController *p = vc.parentViewController;
+    while (p) {
+        NSString *pClass = NSStringFromClass([p class]);
+        if ([pClass rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+            [pClass rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+            [pClass rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            return YES;
+        }
+        p = p.parentViewController;
+    }
+    
     // 1. Check conversationFocalStatusID
     if ([vc respondsToSelector:@selector(conversationFocalStatusID)]) {
         @try {

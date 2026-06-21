@@ -7,6 +7,7 @@
 #import "WDDUIComponents.h"
 #import "TWHeaders.h"
 #import "BHDimPalette.h"
+#import "WDDManager.h"
 
 @interface WDDSettingsViewController () <UITableViewDataSource, UITableViewDelegate>
 @property (nonatomic, strong) UITableView *tableView;
@@ -27,6 +28,7 @@
             @{ @"key": @"wdd_hide_grok_buttons", @"title": @"隐藏Grok相关按钮", @"subtitle": @"隐藏贴文回复中Grok底部的编辑图片、下载Grok等按钮", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_hide_reply_to_indicator", @"title": @"屏蔽回复指示", @"subtitle": @"隐藏回复推文中的‘回复 @用户名’提示", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_enable_single_image_sizing", @"title": @"固定单图大小", @"subtitle": @"固定首页单张图片为 16:9 比例并居中裁剪", @"default": @NO, @"type": @"toggle" },
+            @{ @"key": @"wdd_hide_timeline_images", @"title": @"屏蔽时间线图片", @"subtitle": @"在时间线屏蔽图片以省流量，详情页内仍可查看", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_hide_account_labels", @"title": @"隐藏账号标签", @"subtitle": @"隐藏“戏仿/自动化/游戏/类别”等账号标签", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_hide_disclosure_labels", @"title": @"隐藏推文底部标签", @"subtitle": @"隐藏推文底部的“付费合作/推广/AI生成”等标签", @"default": @NO, @"type": @"toggle" },
             @{ @"key": @"wdd_hide_timeline_view_count", @"title": @"隐藏浏览量数值", @"subtitle": @"隐藏时间线及推文详情内的浏览量（流量数值）", @"default": @NO, @"type": @"toggle" },
@@ -89,11 +91,11 @@
             NSString *subtitle = setting[@"subtitle"];
             [cell configureWithTitle:title subtitle:subtitle];
 
-            NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-            BOOL value = [defaults boolForKey:setting[@"key"]];
+            BOOL value = [WDDManager boolForKey:setting[@"key"]];
+            [cell.toggleSwitch removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
             cell.toggleSwitch.on = value;
             cell.toggleSwitch.tag = indexPath.row;
-            [cell addTarget:self action:@selector(toggleChanged:) forControlEvents:UIControlEventValueChanged];
+            [cell.toggleSwitch addTarget:self action:@selector(toggleChanged:) forControlEvents:UIControlEventValueChanged];
             return cell;
         } else {
             ModernSettingsCompactButtonCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ButtonCell"];
@@ -102,7 +104,7 @@
             }
             
             NSString *title = setting[@"title"];
-            NSString *currentValue = [[NSUserDefaults standardUserDefaults] stringForKey:setting[@"key"]];
+            NSString *currentValue = [WDDManager stringForKey:setting[@"key"]];
             cell.titleLabel.text = title;
             cell.subtitleLabel.text = currentValue ?: setting[@"subtitle"];
             return cell;
@@ -319,7 +321,7 @@
 
 - (void)showMultilineInput:(NSDictionary *)setting {
     NSString *key = setting[@"key"];
-    NSString *currentValue = [[NSUserDefaults standardUserDefaults] stringForKey:key];
+    NSString *currentValue = [WDDManager stringForKey:key];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:setting[@"title"]
                                                                    message:@"\n\n\n\n\n\n\n"
                                                             preferredStyle:UIAlertControllerStyleAlert];
@@ -340,9 +342,9 @@
     [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         NSString *inputText = textView.text;
         if (inputText.length > 0) {
-            [[NSUserDefaults standardUserDefaults] setObject:inputText forKey:key];
+            [WDDManager setString:inputText forKey:key];
         } else {
-            [[NSUserDefaults standardUserDefaults] removeObjectForKey:key];
+            [WDDManager removeObjectForKey:key];
         }
         [self.tableView reloadData];
     }]];
@@ -353,7 +355,7 @@
 
 - (void)showKeywordInput:(NSDictionary *)setting {
     NSString *key = setting[@"key"];
-    NSString *currentValue = [[NSUserDefaults standardUserDefaults] stringForKey:key];
+    NSString *currentValue = [WDDManager stringForKey:key];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:setting[@"title"]
                                                                    message:setting[@"subtitle"]
                                                             preferredStyle:UIAlertControllerStyleAlert];
@@ -366,9 +368,9 @@
     [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         NSString *inputText = alert.textFields.firstObject.text;
         if (inputText.length > 0) {
-            [[NSUserDefaults standardUserDefaults] setObject:inputText forKey:key];
+            [WDDManager setString:inputText forKey:key];
         } else {
-            [[NSUserDefaults standardUserDefaults] removeObjectForKey:key];
+            [WDDManager removeObjectForKey:key];
         }
         [self.tableView reloadData];
     }]];
@@ -379,7 +381,7 @@
 
 - (void)toggleChanged:(UISwitch *)sender {
     NSDictionary *setting = self.settings[sender.tag];
-    [[NSUserDefaults standardUserDefaults] setBool:sender.on forKey:setting[@"key"]];
+    [WDDManager setBool:sender.on forKey:setting[@"key"]];
 }
 
 - (void)setupFooterLabel {

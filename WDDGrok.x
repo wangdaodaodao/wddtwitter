@@ -177,9 +177,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -377,9 +374,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -423,9 +417,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -469,9 +460,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -515,9 +503,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -561,9 +546,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -607,9 +589,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -653,9 +632,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -699,9 +675,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }
@@ -745,9 +718,6 @@
         if (!WDDIsFocalContext(view)) {
             view.hidden = YES;
             view.alpha = 0.0;
-        } else {
-            view.hidden = NO;
-            view.alpha = 1.0;
         }
     }
 }

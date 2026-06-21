@@ -36,6 +36,8 @@ BOOL WDDIsViewModelReply(id viewModel) {
     }
     return NO;
 }
+__weak UIViewController *WDDActiveViewController = nil;
+BOOL WDDActiveViewControllerIsDetail = NO;
 
 static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
     if (!vc) return NO;
@@ -78,10 +80,15 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
         @try {
             id scribeContext = ((id (*)(id, SEL))objc_msgSend)(vc, @selector(scribeContext));
             if (scribeContext) {
-                NSString *description = [scribeContext description];
-                if ([description rangeOfString:@"tweet_detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-                    [description rangeOfString:@"conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
-                    return YES;
+                NSString *page = nil;
+                if ([scribeContext respondsToSelector:@selector(scribePage)]) {
+                    page = ((id (*)(id, SEL))objc_msgSend)(scribeContext, @selector(scribePage));
+                }
+                if (page && [page isKindOfClass:[NSString class]]) {
+                    if ([page rangeOfString:@"tweet_detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+                        [page rangeOfString:@"conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                        return YES;
+                    }
                 }
             }
         } @catch (NSException *e) {}
@@ -95,57 +102,13 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
         return YES;
     }
     
-    for (UIViewController *child in vc.childViewControllers) {
-        if (isCurrentViewControllerDetails(child)) {
-            return YES;
-        }
-    }
-    
     return NO;
 }
 
 BOOL WDDIsCurrentActiveContextDetail(void) {
-    @try {
-        UIWindow *window = nil;
-        if (@available(iOS 13.0, *)) {
-            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive) {
-                    for (UIWindow *w in scene.windows) {
-                        if (w.isKeyWindow) {
-                            window = w;
-                            break;
-                        }
-                    }
-                }
-                if (window) break;
-            }
-        }
-        if (!window) {
-            window = [UIApplication sharedApplication].keyWindow;
-        }
-        UIViewController *vc = window.rootViewController;
-        while (vc) {
-            if ([vc isKindOfClass:[UINavigationController class]]) {
-                UINavigationController *nav = (UINavigationController *)vc;
-                // Proactively check topViewController during transition
-                UIViewController *top = nav.topViewController;
-                if (top && isCurrentViewControllerDetails(top)) {
-                    return YES;
-                }
-                vc = nav.visibleViewController;
-            } else if ([vc isKindOfClass:[UITabBarController class]]) {
-                vc = [(UITabBarController *)vc selectedViewController];
-            } else if (vc.presentedViewController) {
-                vc = vc.presentedViewController;
-            } else {
-                break;
-            }
-        }
-        if (vc) {
-            return isCurrentViewControllerDetails(vc);
-        }
-    } @catch (NSException *e) {}
-    return NO;
+    UIViewController *vc = WDDActiveViewController;
+    if (!vc) return NO;
+    return isCurrentViewControllerDetails(vc);
 }
 
 UIViewController *WDDViewControllerForView(UIView *view) {
@@ -185,6 +148,6 @@ BOOL WDDIsFocalContext(UIView *view) {
         return YES;
     }
     
-    // 4. Global active controller fallback
-    return WDDIsCurrentActiveContextDetail();
+    // 4. Global active controller fallback (Thread-safe reading of cached boolean)
+    return WDDActiveViewControllerIsDetail;
 }

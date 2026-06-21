@@ -5,139 +5,223 @@
 
 #import "WDDManager.h"
 
-static NSInteger _filterConfigVersion = 0;
+// ==============================
+// Plist-based settings persistence
+// Bypasses NSUserDefaults entirely for maximum reliability
+// ==============================
 
-static BOOL _hideAuthorName;
-static BOOL _hideAvatar;
-static BOOL _hideBlueVerified;
-static BOOL _hideTranslationNotice;
-static BOOL _hideReplyToIndicator;
-static BOOL _enableReplyFilter;
-static NSString *_replyKeywords;
-static BOOL _enableEmojiFilter;
-static BOOL _enableRegexFilter;
-static NSString *_replyRegexes;
-static BOOL _enableSingleImageSizing;
-static BOOL _hideAccountLabels;
-static BOOL _hideDisclosureLabels;
-static BOOL _hideTimelineViewCount;
-static BOOL _disableLongPressMenu;
-static BOOL _hideGrokButtons;
+static NSString *_prefsPath = nil;
+static NSMutableDictionary *_prefsCache = nil;
+static NSInteger _filterConfigVersion = 0;
+static BOOL _lastEnableReply;
+static BOOL _lastEnableEmoji;
+static BOOL _lastEnableRegex;
+static NSString *_lastKeywords;
+static NSString *_lastRegexes;
+
+static void WDDEnsurePrefs(void) {
+    if (_prefsPath) return;
+    
+    NSString *libDir = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) firstObject];
+    _prefsPath = [libDir stringByAppendingPathComponent:@"WDDTwitterPrefs.plist"];
+    
+    NSDictionary *onDisk = [NSDictionary dictionaryWithContentsOfFile:_prefsPath];
+    if (onDisk) {
+        _prefsCache = [onDisk mutableCopy];
+    } else {
+        _prefsCache = [NSMutableDictionary new];
+        
+        // One-time migration from NSUserDefaults (standardUserDefaults)
+        NSUserDefaults *oldDefaults = [NSUserDefaults standardUserDefaults];
+        NSArray *boolKeys = @[
+            @"hide_author_name", @"hide_avatar", @"hide_blue_verified",
+            @"wdd_hide_translation_notice", @"wdd_hide_grok_buttons",
+            @"wdd_hide_reply_to_indicator", @"wdd_enable_single_image_sizing",
+            @"wdd_hide_account_labels", @"wdd_hide_disclosure_labels",
+            @"wdd_hide_timeline_view_count", @"wdd_disable_long_press_menu",
+            @"wdd_hide_timeline_images",
+            @"enable_reply_filter", @"enable_emoji_filter", @"enable_regex_filter"
+        ];
+        NSArray *stringKeys = @[@"reply_keywords", @"reply_regexes"];
+        
+        for (NSString *key in boolKeys) {
+            if ([oldDefaults objectForKey:key] != nil) {
+                _prefsCache[key] = @([oldDefaults boolForKey:key]);
+            }
+        }
+        for (NSString *key in stringKeys) {
+            NSString *val = [oldDefaults stringForKey:key];
+            if (val) {
+                _prefsCache[key] = val;
+            }
+        }
+        
+        // Also try migration from suite-based defaults (previous fix attempt)
+        NSUserDefaults *suiteDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.wangdaodao.wddtwitter"];
+        for (NSString *key in boolKeys) {
+            if ([suiteDefaults objectForKey:key] != nil && _prefsCache[key] == nil) {
+                _prefsCache[key] = @([suiteDefaults boolForKey:key]);
+            }
+        }
+        for (NSString *key in stringKeys) {
+            NSString *val = [suiteDefaults stringForKey:key];
+            if (val && _prefsCache[key] == nil) {
+                _prefsCache[key] = val;
+            }
+        }
+        
+        [_prefsCache writeToFile:_prefsPath atomically:YES];
+    }
+}
+
+static void WDDSavePrefs(void) {
+    [_prefsCache writeToFile:_prefsPath atomically:YES];
+}
 
 @implementation WDDManager
 
 + (void)initialize {
     if (self == [WDDManager class]) {
-        [self reloadSettingsCache];
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                 selector:@selector(reloadSettingsCache)
-                                                     name:NSUserDefaultsDidChangeNotification
-                                                   object:nil];
+        WDDEnsurePrefs();
+        [self updateFilterVersion];
     }
 }
 
-+ (void)reloadSettingsCache {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
++ (void)updateFilterVersion {
+    BOOL newEnableReply = [self boolForKey:@"enable_reply_filter"];
+    BOOL newEnableEmoji = [self boolForKey:@"enable_emoji_filter"];
+    BOOL newEnableRegex = [self boolForKey:@"enable_regex_filter"];
+    NSString *newKeywords = [self stringForKey:@"reply_keywords"];
+    NSString *newRegexes = [self stringForKey:@"reply_regexes"];
     
-    BOOL newEnableReply = [defaults boolForKey:@"enable_reply_filter"];
-    BOOL newEnableEmoji = [defaults boolForKey:@"enable_emoji_filter"];
-    BOOL newEnableRegex = [defaults boolForKey:@"enable_regex_filter"];
-    NSString *newKeywords = [defaults stringForKey:@"reply_keywords"];
-    NSString *newRegexes = [defaults stringForKey:@"reply_regexes"];
-    
-    // Invalidate caches if any filter criteria change
-    if (_enableReplyFilter != newEnableReply ||
-        _enableEmojiFilter != newEnableEmoji ||
-        _enableRegexFilter != newEnableRegex ||
-        ![_replyKeywords isEqualToString:newKeywords] ||
-        ![_replyRegexes isEqualToString:newRegexes]) {
+    if (_lastEnableReply != newEnableReply ||
+        _lastEnableEmoji != newEnableEmoji ||
+        _lastEnableRegex != newEnableRegex ||
+        ![_lastKeywords isEqualToString:newKeywords ?: @""] ||
+        ![_lastRegexes isEqualToString:newRegexes ?: @""]) {
         _filterConfigVersion++;
     }
     
-    _hideAuthorName = [defaults boolForKey:@"hide_author_name"];
-    _hideAvatar = [defaults boolForKey:@"hide_avatar"];
-    _hideBlueVerified = [defaults boolForKey:@"hide_blue_verified"];
-    _hideTranslationNotice = [defaults boolForKey:@"wdd_hide_translation_notice"];
-    _hideReplyToIndicator = [defaults boolForKey:@"wdd_hide_reply_to_indicator"];
-    _enableReplyFilter = newEnableReply;
-    _replyKeywords = [newKeywords copy];
-    _enableEmojiFilter = newEnableEmoji;
-    _enableRegexFilter = newEnableRegex;
-    _replyRegexes = [newRegexes copy];
-    _enableSingleImageSizing = [defaults boolForKey:@"wdd_enable_single_image_sizing"];
-    _hideAccountLabels = [defaults boolForKey:@"wdd_hide_account_labels"];
-    _hideDisclosureLabels = [defaults boolForKey:@"wdd_hide_disclosure_labels"];
-    _hideTimelineViewCount = [defaults boolForKey:@"wdd_hide_timeline_view_count"];
-    _disableLongPressMenu = [defaults boolForKey:@"wdd_disable_long_press_menu"];
-    _hideGrokButtons = [defaults boolForKey:@"wdd_hide_grok_buttons"];
+    _lastEnableReply = newEnableReply;
+    _lastEnableEmoji = newEnableEmoji;
+    _lastEnableRegex = newEnableRegex;
+    _lastKeywords = [newKeywords copy] ?: @"";
+    _lastRegexes = [newRegexes copy] ?: @"";
 }
+
+// ==============================
+// Generic accessors
+// ==============================
+
++ (BOOL)boolForKey:(NSString *)key {
+    WDDEnsurePrefs();
+    return [_prefsCache[key] boolValue];
+}
+
++ (NSString *)stringForKey:(NSString *)key {
+    WDDEnsurePrefs();
+    id val = _prefsCache[key];
+    return [val isKindOfClass:[NSString class]] ? val : nil;
+}
+
++ (void)setBool:(BOOL)value forKey:(NSString *)key {
+    WDDEnsurePrefs();
+    _prefsCache[key] = @(value);
+    WDDSavePrefs();
+    [self updateFilterVersion];
+}
+
++ (void)setString:(NSString *)value forKey:(NSString *)key {
+    WDDEnsurePrefs();
+    if (value) {
+        _prefsCache[key] = value;
+    } else {
+        [_prefsCache removeObjectForKey:key];
+    }
+    WDDSavePrefs();
+    [self updateFilterVersion];
+}
+
++ (void)removeObjectForKey:(NSString *)key {
+    WDDEnsurePrefs();
+    [_prefsCache removeObjectForKey:key];
+    WDDSavePrefs();
+}
+
+// ==============================
+// Convenience getters
+// ==============================
 
 + (NSInteger)filterConfigVersion {
     return _filterConfigVersion;
 }
 
 + (BOOL)hideAuthorName {
-    return _hideAuthorName;
+    return [self boolForKey:@"hide_author_name"];
 }
 
 + (BOOL)hideAvatar {
-    return _hideAvatar;
+    return [self boolForKey:@"hide_avatar"];
 }
 
 + (BOOL)hideBlueVerified {
-    return _hideBlueVerified;
+    return [self boolForKey:@"hide_blue_verified"];
 }
 
 + (BOOL)hideTranslationNotice {
-    return _hideTranslationNotice;
+    return [self boolForKey:@"wdd_hide_translation_notice"];
 }
 
 + (BOOL)hideReplyToIndicator {
-    return _hideReplyToIndicator;
+    return [self boolForKey:@"wdd_hide_reply_to_indicator"];
 }
 
 + (BOOL)enableReplyFilter {
-    return _enableReplyFilter;
+    return [self boolForKey:@"enable_reply_filter"];
 }
 
 + (NSString *)replyKeywords {
-    return _replyKeywords;
+    return [self stringForKey:@"reply_keywords"];
 }
 
 + (BOOL)enableEmojiFilter {
-    return _enableEmojiFilter;
+    return [self boolForKey:@"enable_emoji_filter"];
 }
 
 + (BOOL)enableRegexFilter {
-    return _enableRegexFilter;
+    return [self boolForKey:@"enable_regex_filter"];
 }
 
 + (NSString *)replyRegexes {
-    return _replyRegexes;
+    return [self stringForKey:@"reply_regexes"];
 }
 
 + (BOOL)enableSingleImageSizing {
-    return _enableSingleImageSizing;
+    return [self boolForKey:@"wdd_enable_single_image_sizing"];
 }
 
 + (BOOL)hideAccountLabels {
-    return _hideAccountLabels;
+    return [self boolForKey:@"wdd_hide_account_labels"];
 }
 
 + (BOOL)hideDisclosureLabels {
-    return _hideDisclosureLabels;
+    return [self boolForKey:@"wdd_hide_disclosure_labels"];
 }
 
 + (BOOL)hideTimelineViewCount {
-    return _hideTimelineViewCount;
+    return [self boolForKey:@"wdd_hide_timeline_view_count"];
 }
 
 + (BOOL)disableLongPressMenu {
-    return _disableLongPressMenu;
+    return [self boolForKey:@"wdd_disable_long_press_menu"];
 }
 
 + (BOOL)hideGrokButtons {
-    return _hideGrokButtons;
+    return [self boolForKey:@"wdd_hide_grok_buttons"];
+}
+
++ (BOOL)hideTimelineImages {
+    return [self boolForKey:@"wdd_hide_timeline_images"];
 }
 
 @end

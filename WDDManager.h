@@ -6,6 +6,11 @@
 #import <Foundation/Foundation.h>
 
 @interface WDDManager : NSObject
++ (BOOL)boolForKey:(NSString *)key;
++ (NSString *)stringForKey:(NSString *)key;
++ (void)setBool:(BOOL)value forKey:(NSString *)key;
++ (void)setString:(NSString *)value forKey:(NSString *)key;
++ (void)removeObjectForKey:(NSString *)key;
 + (BOOL)hideAuthorName;
 + (BOOL)hideAvatar;
 + (BOOL)hideBlueVerified;
@@ -22,5 +27,6 @@
 + (BOOL)hideTimelineViewCount;
 + (BOOL)disableLongPressMenu;
 + (BOOL)hideGrokButtons;
++ (BOOL)hideTimelineImages;
 + (NSInteger)filterConfigVersion;
 @end

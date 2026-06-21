@@ -17,3 +17,4 @@ ipa_extracted*
 .agentrules
 .windsurfrules
 .agents/
+*.py

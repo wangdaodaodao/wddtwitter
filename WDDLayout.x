@@ -4,6 +4,9 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 
+static BOOL g_isCalculatingQuotedLayout = NO;
+static BOOL g_hasAdjustedQuotedWidth = NO;
+
 // ==============================
 // UI Hiding Features
 // ==============================
@@ -15,6 +18,33 @@
 }
 - (BOOL)isFromUserBlueVerified {
     return [WDDManager hideBlueVerified] ? NO : %orig;
+}
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
 }
 %end
 
@@ -28,6 +58,33 @@
 - (NSString *)fromUserFullName {
     return [WDDManager hideAuthorName] ? @"" : %orig;
 }
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
 %end
 
 %hook T1TwitterCoreStatusViewModelAdapter
@@ -37,6 +94,154 @@
 - (BOOL)isFromUserBlueVerified {
     return [WDDManager hideBlueVerified] ? NO : %orig;
 }
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+%end
+
+%hook T1TranslatedStatusViewModel
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+%end
+
+%hook TTACoreStatusViewModelURT
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+%end
+
+%hook TwitterCoreStatusViewModelAdapter
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+%end
+%group SwiftHooks
+%hook T1TwitterSwift_TwitterCoreStatusViewModelAdapter
+- (BOOL)hasMedia {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return NO;
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
+}
+- (NSArray *)inlineMediaInfos {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (NSArray *)representedMediaEntities {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return @[];
+    }
+    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
+}
+- (id)fromUserHighlightedDesignatorInfo {
+    return [WDDManager hideAccountLabels] ? nil : %orig;
+}
+- (BOOL)hasPaidPromotionDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+- (BOOL)hasAIGeneratedDisclosure {
+    return [WDDManager hideDisclosureLabels] ? NO : %orig;
+}
+%end
 %end
 
 %hook TFNTwitterUser
@@ -366,10 +571,25 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
         makeImageViewsAspectFill(subview, view.bounds);
     }
 }
-static BOOL g_isCalculatingQuotedLayout = NO;
-static BOOL g_hasAdjustedQuotedWidth = NO;
 
 %hook T1StandardStatusAttachmentViewAdapter
+
+- (unsigned long long)attachmentType {
+    unsigned long long origType = %orig;
+    if (origType == 2) {
+        if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+            return 0;
+        }
+    }
+    return origType;
+}
+
+- (id)photoVideoForwardView {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return nil;
+    }
+    return %orig;
+}
 
 - (id)_t1_quotedStandardStatusViewLayoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width {
     g_isCalculatingQuotedLayout = YES;
@@ -388,6 +608,9 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 
 - (CGSize)_t1_verticalMediaSizeForAspectRatio:(double)aspectRatio width:(double)width anatomyFeatures:(id)anatomyFeatures {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return CGSizeZero;
+    }
     if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
@@ -401,6 +624,9 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 
 - (CGSize)_t1_photoVideoForwardViewSizeForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width attachmentType:(unsigned long long)type {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return CGSizeZero;
+    }
     if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
@@ -429,6 +655,22 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
         }
     }
     return size;
+}
+
+- (id)_t1_unifiedCardViewLayoutStateForViewModel:(id)viewModel unifiedCard:(id)unifiedCard shouldHideFooter:(BOOL)shouldHideFooter layoutMetrics:(id)layoutMetrics width:(double)width {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+        id oldVal = threadDict[@"WDDCollapseUnifiedCardLayout"];
+        threadDict[@"WDDCollapseUnifiedCardLayout"] = @YES;
+        id result = %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
+        if (oldVal) {
+            threadDict[@"WDDCollapseUnifiedCardLayout"] = oldVal;
+        } else {
+            [threadDict removeObjectForKey:@"WDDCollapseUnifiedCardLayout"];
+        }
+        return result;
+    }
+    return %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
 }
 
 %end
@@ -569,91 +811,17 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 
 %end
 
-%hook TFNTwitterStatus
-- (BOOL)hasMedia {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
-}
-- (NSArray *)inlineMediaInfos {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (NSArray *)representedMediaEntities {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (id)fromUserHighlightedDesignatorInfo {
-    return [WDDManager hideAccountLabels] ? nil : %orig;
-}
-- (BOOL)hasPaidPromotionDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-- (BOOL)hasAIGeneratedDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-%end
-
-%hook T1CompositionStatusViewModel
-- (BOOL)hasMedia {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
-}
-- (NSArray *)inlineMediaInfos {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (NSArray *)representedMediaEntities {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (id)fromUserHighlightedDesignatorInfo {
-    return [WDDManager hideAccountLabels] ? nil : %orig;
-}
-- (BOOL)hasPaidPromotionDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-- (BOOL)hasAIGeneratedDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-%end
-
-%hook T1TranslatedStatusViewModel
-- (BOOL)hasMedia {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
-}
-- (NSArray *)inlineMediaInfos {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (NSArray *)representedMediaEntities {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (id)fromUserHighlightedDesignatorInfo {
-    return [WDDManager hideAccountLabels] ? nil : %orig;
-}
-- (BOOL)hasPaidPromotionDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-- (BOOL)hasAIGeneratedDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-%end
-
-%hook T1TwitterCoreStatusViewModelAdapter
-- (BOOL)hasMedia {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
-}
-- (NSArray *)inlineMediaInfos {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (NSArray *)representedMediaEntities {
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (id)fromUserHighlightedDesignatorInfo {
-    return [WDDManager hideAccountLabels] ? nil : %orig;
-}
-- (BOOL)hasPaidPromotionDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-- (BOOL)hasAIGeneratedDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-%end
 
 %hook T1StatusPhotoVideoForwardView
+
+- (void)setFrame:(CGRect)frame {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        %orig(CGRectZero);
+        self.hidden = YES;
+        return;
+    }
+    %orig(frame);
+}
 
 - (long long)_t1_imageContentMode {
     if (![WDDManager enableSingleImageSizing]) {
@@ -671,6 +839,14 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
 }
 
 - (void)layoutSubviews {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        self.hidden = YES;
+        self.frame = CGRectZero;
+        for (UIView *subview in self.subviews) {
+            subview.hidden = YES;
+        }
+        return;
+    }
     %orig;
     
     if (![WDDManager enableSingleImageSizing]) {
@@ -708,3 +884,200 @@ static BOOL g_hasAdjustedQuotedWidth = NO;
     }
 }
 %end
+
+%hook T1UnifiedCardImageView
+- (void)setImage:(UIImage *)image {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        %orig(nil);
+        self.hidden = YES;
+        return;
+    }
+    %orig(image);
+}
+
+- (void)setFrame:(CGRect)frame {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        %orig(CGRectZero);
+        self.hidden = YES;
+        return;
+    }
+    %orig(frame);
+}
+
+- (void)layoutSubviews {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        self.hidden = YES;
+        self.frame = CGRectZero;
+        return;
+    }
+    %orig;
+}
+
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        return CGSizeZero;
+    }
+    return %orig(size);
+}
+
+- (CGSize)intrinsicContentSize {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+%end
+
+%hook T1CardImageView
+- (void)setImage:(UIImage *)image {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        %orig(nil);
+        self.hidden = YES;
+        return;
+    }
+    %orig(image);
+}
+
+- (void)setFrame:(CGRect)frame {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        %orig(CGRectZero);
+        self.hidden = YES;
+        return;
+    }
+    %orig(frame);
+}
+
+- (void)layoutSubviews {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        self.hidden = YES;
+        self.frame = CGRectZero;
+        return;
+    }
+    %orig;
+}
+
+- (CGSize)sizeThatFits:(CGSize)size {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        return CGSizeZero;
+    }
+    return %orig(size);
+}
+
+- (CGSize)intrinsicContentSize {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+%end
+
+%hook UIViewController
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    NSString *className = NSStringFromClass([self class]);
+    if ([className hasPrefix:@"UI"] || [className hasPrefix:@"_"]) {
+        return;
+    }
+    WDDActiveViewController = self;
+    WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
+}
+%end
+
+%hook T1ConversationFocalStatusViewLayoutStateGenerator
+- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    id oldVal = threadDict[@"WDDIsFocalLayout"];
+    threadDict[@"WDDIsFocalLayout"] = @YES;
+    id result = %orig(viewModel, options, account, layoutMetrics, previousLayoutState);
+    if (oldVal) {
+        threadDict[@"WDDIsFocalLayout"] = oldVal;
+    } else {
+        [threadDict removeObjectForKey:@"WDDIsFocalLayout"];
+    }
+    return result;
+}
+%end
+
+%hook TUCMediaComponentViewLayoutState
+- (CGSize)size {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDCollapseUnifiedCardLayout"] boolValue]) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+- (CGRect)mediaFrame {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDCollapseUnifiedCardLayout"] boolValue]) {
+        return CGRectZero;
+    }
+    return %orig;
+}
+- (CGRect)buttonFrame {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDCollapseUnifiedCardLayout"] boolValue]) {
+        return CGRectZero;
+    }
+    return %orig;
+}
+%end
+
+%group SwipeableMediaHook
+%hook _TtCC21TwitterUnifiedCardsUI27SwipeableMediaComponentView11LayoutState
+- (CGSize)size {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDCollapseUnifiedCardLayout"] boolValue]) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+%end
+%end
+
+%group MediaGalleryHook
+%hook _TtCC21TwitterUnifiedCardsUI25MediaGalleryComponentView11LayoutState
+- (CGSize)size {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDCollapseUnifiedCardLayout"] boolValue]) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+%end
+%end
+
+%group CompactVideoHook
+%hook _TtC21TwitterUnifiedCardsUI40CompactCardVideoComponentViewLayoutState
+- (CGSize)size {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDCollapseUnifiedCardLayout"] boolValue]) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+%end
+%end
+
+%ctor {
+    %init(SwiftHooks, T1TwitterSwift_TwitterCoreStatusViewModelAdapter = objc_getClass("T1TwitterSwift.TwitterCoreStatusViewModelAdapter"));
+    
+    Class c1 = objc_getClass("TwitterUnifiedCardsUI.SwipeableMediaComponentView.LayoutState");
+    if (!c1) c1 = objc_getClass("_TtCC21TwitterUnifiedCardsUI27SwipeableMediaComponentView11LayoutState");
+    if (c1) {
+        %init(SwipeableMediaHook, _TtCC21TwitterUnifiedCardsUI27SwipeableMediaComponentView11LayoutState = c1);
+    }
+    
+    Class c2 = objc_getClass("TwitterUnifiedCardsUI.MediaGalleryComponentView.LayoutState");
+    if (!c2) c2 = objc_getClass("_TtCC21TwitterUnifiedCardsUI25MediaGalleryComponentView11LayoutState");
+    if (c2) {
+        %init(MediaGalleryHook, _TtCC21TwitterUnifiedCardsUI25MediaGalleryComponentView11LayoutState = c2);
+    }
+    
+    Class c3 = objc_getClass("TwitterUnifiedCardsUI.CompactCardVideoComponentViewLayoutState");
+    if (!c3) c3 = objc_getClass("_TtC21TwitterUnifiedCardsUI40CompactCardVideoComponentViewLayoutState");
+    if (c3) {
+        %init(CompactVideoHook, _TtC21TwitterUnifiedCardsUI40CompactCardVideoComponentViewLayoutState = c3);
+    }
+    
+    %init;
+}

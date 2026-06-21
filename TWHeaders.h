@@ -103,12 +103,26 @@
 - (long long)displayType;
 @end
 
+@interface T1UnifiedCardImageView : UIImageView
+@end
+
+@interface T1CardImageView : UIImageView
+@end
+
 @interface T1StandardStatusAttachmentViewAdapter : NSObject
 - (unsigned long long)attachmentType;
 - (id)photoVideoForwardView;
 - (long long)displayType;
 - (id)_t1_quotedStandardStatusViewLayoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width;
+- (id)_t1_unifiedCardViewLayoutStateForViewModel:(id)viewModel unifiedCard:(id)unifiedCard shouldHideFooter:(BOOL)shouldHideFooter layoutMetrics:(id)layoutMetrics width:(double)width;
 @end
+
+@interface TUCMediaComponentViewLayoutState : NSObject
+- (CGSize)size;
+- (CGRect)mediaFrame;
+- (CGRect)buttonFrame;
+@end
+
 
 @interface NSObject (TwitterMedia)
 - (NSArray *)inlineMediaInfos;
@@ -150,6 +164,18 @@
 @end
 
 @interface T1TwitterCoreStatusViewModelAdapter : NSObject
+- (BOOL)hasMedia;
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+
+@interface TTACoreStatusViewModelURT : NSObject
+- (BOOL)hasMedia;
+- (NSArray *)inlineMediaInfos;
+- (NSArray *)representedMediaEntities;
+@end
+
+@interface TwitterCoreStatusViewModelAdapter : NSObject
 - (BOOL)hasMedia;
 - (NSArray *)inlineMediaInfos;
 - (NSArray *)representedMediaEntities;

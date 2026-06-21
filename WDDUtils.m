@@ -124,10 +124,16 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
             for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive) {
                     for (UIWindow *w in scene.windows) {
-                        NSString *className = NSStringFromClass([w class]);
-                        // 绝对不能遍历任何与键盘、输入法有关的特殊窗口，以防导致远程输入法连接断开/重置
-                        if ([className rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-                            [className rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                        Class wClass = [w class];
+                        static Class remoteKeyboardClass = nil;
+                        static Class textEffectsClass = nil;
+                        static dispatch_once_t onceToken;
+                        dispatch_once(&onceToken, ^{
+                            remoteKeyboardClass = objc_getClass("UIRemoteKeyboardWindow");
+                            textEffectsClass = objc_getClass("UITextEffectsWindow");
+                        });
+                        if ((remoteKeyboardClass && [w isKindOfClass:remoteKeyboardClass]) ||
+                            (textEffectsClass && [w isKindOfClass:textEffectsClass])) {
                             continue;
                         }
                         if (w.isKeyWindow) {
@@ -138,12 +144,20 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
                     if (!window) {
                         // 回退到该活动场景下的第一个非键盘类窗口
                         for (UIWindow *w in scene.windows) {
-                            NSString *className = NSStringFromClass([w class]);
-                            if ([className rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location == NSNotFound &&
-                                [className rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location == NSNotFound) {
-                                window = w;
-                                break;
+                            Class wClass = [w class];
+                            static Class remoteKeyboardClass = nil;
+                            static Class textEffectsClass = nil;
+                            static dispatch_once_t onceToken;
+                            dispatch_once(&onceToken, ^{
+                                remoteKeyboardClass = objc_getClass("UIRemoteKeyboardWindow");
+                                textEffectsClass = objc_getClass("UITextEffectsWindow");
+                            });
+                            if ((remoteKeyboardClass && [w isKindOfClass:remoteKeyboardClass]) ||
+                                (textEffectsClass && [w isKindOfClass:textEffectsClass])) {
+                                continue;
                             }
+                            window = w;
+                            break;
                         }
                     }
                 }
@@ -152,10 +166,19 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
         }
         if (!window) {
             UIWindow *kw = [UIApplication sharedApplication].keyWindow;
-            NSString *className = NSStringFromClass([kw class]);
-            if ([className rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location == NSNotFound &&
-                [className rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location == NSNotFound) {
-                window = kw;
+            if (kw) {
+                Class wClass = [kw class];
+                static Class remoteKeyboardClass = nil;
+                static Class textEffectsClass = nil;
+                static dispatch_once_t onceToken;
+                dispatch_once(&onceToken, ^{
+                    remoteKeyboardClass = objc_getClass("UIRemoteKeyboardWindow");
+                    textEffectsClass = objc_getClass("UITextEffectsWindow");
+                });
+                if (!((remoteKeyboardClass && [kw isKindOfClass:remoteKeyboardClass]) ||
+                      (textEffectsClass && [kw isKindOfClass:textEffectsClass]))) {
+                    window = kw;
+                }
             }
         }
         if (!window && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(window)]) {

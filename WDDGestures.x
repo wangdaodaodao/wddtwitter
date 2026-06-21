@@ -12,9 +12,16 @@ static BOOL isTargetCellOrStatusView(UIView *view) {
     
     // 过滤掉键盘与文本输入系统窗口中的视图，确保不影响系统输入法
     if (view.window) {
-        NSString *windowClass = NSStringFromClass([view.window class]);
-        if ([windowClass rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-            [windowClass rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+        Class windowClass = [view.window class];
+        static Class remoteKeyboardWindowClass = nil;
+        static Class textEffectsWindowClass = nil;
+        static dispatch_once_t onceToken;
+        dispatch_once(&onceToken, ^{
+            remoteKeyboardWindowClass = objc_getClass("UIRemoteKeyboardWindow");
+            textEffectsWindowClass = objc_getClass("UITextEffectsWindow");
+        });
+        if ((remoteKeyboardWindowClass && [view.window isKindOfClass:remoteKeyboardWindowClass]) ||
+            (textEffectsWindowClass && [view.window isKindOfClass:textEffectsWindowClass])) {
             return NO;
         }
     }

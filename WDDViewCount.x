@@ -5,27 +5,33 @@
 // View Count Hiding Logic
 // ==============================
 
-%hook _TtC9T1Twitter33T1StatusViewCountDisplayHelperApp
+// 静态 Hook T1GraphQLFeatures (控制时间线浏览量是否请求及显示)
+%hook T1GraphQLFeatures
 
-+ (BOOL)isShowViewCountTopRightEnabled {
+- (BOOL)isViewCountHomeTimelineEnabled {
     if ([WDDManager hideTimelineViewCount]) {
         return NO;
     }
     return %orig;
 }
 
-+ (BOOL)isViewCountHomeTimelineEnabled {
+%end
+
+// 静态 Hook TPSTwitterFeatureSwitches (从根源上禁用浏览量 Feature Switches)
+%hook TPSTwitterFeatureSwitches
+
+- (BOOL)boolForKey:(NSString *)key {
     if ([WDDManager hideTimelineViewCount]) {
-        return NO;
+        if ([key isEqualToString:@"view_counts_public_visibility_enabled"] ||
+            [key isEqualToString:@"view_counts_everywhere_api_enabled"] ||
+            [key isEqualToString:@"view_counts_author_visibility_enabled"] ||
+            [key isEqualToString:@"isViewCountsAPIEnabled"] ||
+            [key isEqualToString:@"shouldRequestViewCountsThroughAllFeatureSwitchGatedAPIs"] ||
+            [key isEqualToString:@"ios_show_inline_actions_show_view_count_top_right_enabled"]) {
+            return NO;
+        }
     }
     return %orig;
-}
-
-+ (BOOL)shouldShowViewCountFor:(id)status viewModel:(id)viewModel isKnownFocal:(BOOL)isKnownFocal {
-    if ([WDDManager hideTimelineViewCount]) {
-        return NO;
-    }
-    return %orig(status, viewModel, isKnownFocal);
 }
 
 %end

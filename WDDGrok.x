@@ -10,34 +10,6 @@
 
 %group TimelineTranslation
 
-%hook T1ConversationFocalStatusViewLayoutStateGenerator
-- (id)layoutStateForViewModel:(id)viewModel options:(unsigned long long)options account:(id)account layoutMetrics:(id)layoutMetrics withPreviousLayoutState:(id)previousLayoutState {
-    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
-    id oldVal = threadDict[@"WDDIsFocalLayout"];
-    threadDict[@"WDDIsFocalLayout"] = @YES;
-    id result = %orig;
-    if (oldVal) {
-        threadDict[@"WDDIsFocalLayout"] = oldVal;
-    } else {
-        [threadDict removeObjectForKey:@"WDDIsFocalLayout"];
-    }
-    return result;
-}
-
-- (id)layoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics {
-    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
-    id oldVal = threadDict[@"WDDIsFocalLayout"];
-    threadDict[@"WDDIsFocalLayout"] = @YES;
-    id result = %orig;
-    if (oldVal) {
-        threadDict[@"WDDIsFocalLayout"] = oldVal;
-    } else {
-        [threadDict removeObjectForKey:@"WDDIsFocalLayout"];
-    }
-    return result;
-}
-%end
-
 %hook T1StandardStatusTranslateLayoutState
 - (BOOL)isTranslatable {
     if ([WDDManager hideTranslationNotice]) {

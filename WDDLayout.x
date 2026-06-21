@@ -996,6 +996,19 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     }
     return result;
 }
+
+- (id)layoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    id oldVal = threadDict[@"WDDIsFocalLayout"];
+    threadDict[@"WDDIsFocalLayout"] = @YES;
+    id result = %orig(viewModel, layoutMetrics);
+    if (oldVal) {
+        threadDict[@"WDDIsFocalLayout"] = oldVal;
+    } else {
+        [threadDict removeObjectForKey:@"WDDIsFocalLayout"];
+    }
+    return result;
+}
 %end
 
 %hook TUCMediaComponentViewLayoutState

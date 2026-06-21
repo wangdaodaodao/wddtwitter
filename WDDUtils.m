@@ -139,10 +139,15 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
                 if (top && isCurrentViewControllerDetails(top)) {
                     return YES;
                 }
-                vc = nav.visibleViewController;
+                UIViewController *visible = nav.visibleViewController;
+                if (visible.isMovingFromParentViewController || visible.isBeingDismissed) {
+                    vc = top;
+                } else {
+                    vc = visible;
+                }
             } else if ([vc isKindOfClass:[UITabBarController class]]) {
                 vc = [(UITabBarController *)vc selectedViewController];
-            } else if (vc.presentedViewController) {
+            } else if (vc.presentedViewController && !vc.presentedViewController.isBeingDismissed) {
                 vc = vc.presentedViewController;
             } else {
                 break;

@@ -732,7 +732,26 @@
 }
 %end
 
+%group QuotedTranslation
+%hook ClassName
+- (BOOL)isTranslatable {
+    if ([WDDManager hideTranslationNotice]) {
+        if (WDDIsFocalContext(nil)) {
+            return %orig;
+        }
+        return NO;
+    }
+    return %orig;
+}
+%end
+%end
+
 %ctor {
     %init;
     %init(TimelineTranslation);
+    
+    Class quotedLayoutClass = objc_getClass("_TtC14T1TwitterSwiftP33_3A09CF4E063C1F38BB397ABF76410C9439GrokTranslateQuotedAnnoationLayoutState");
+    if (quotedLayoutClass) {
+        %init(QuotedTranslation, ClassName = quotedLayoutClass);
+    }
 }

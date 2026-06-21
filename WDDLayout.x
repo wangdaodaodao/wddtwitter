@@ -972,6 +972,16 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
 %end
 
 %hook UIViewController
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    NSString *className = NSStringFromClass([self class]);
+    if ([className hasPrefix:@"UI"] || [className hasPrefix:@"_"]) {
+        return;
+    }
+    WDDActiveViewController = self;
+    WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
+}
+
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     NSString *className = NSStringFromClass([self class]);

@@ -2,9 +2,15 @@
 
 这是一个基于 iOS Theos 开发的 Twitter (X) 客户端界面增强与过滤功能微调插件（Tweak）。通过注入 App 运行期方法（Hooking），实现推文内容过滤、多余 UI 隐藏以及界面自适应美化。
 
-详细功能介绍，界面预览，及更新说明：请参考官方文档：
+详细功能介绍，界面预览，及更新说明：请参考文档：
 
 [wangdaodao.me/wddtwitter/](https://wangdaodao.me/wddtwitter/)
+
+## 界面图片
+
+![设置界面](img/d52718c94466ba1be463015f11caa98fa2537592.webp)
+
+![效果展示](img/985cf887622409da6461c4ae85de7465a85e3aa7.jpg)
 
 ---
 

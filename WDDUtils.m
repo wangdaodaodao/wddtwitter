@@ -112,15 +112,38 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
 }
 
 BOOL WDDIsCurrentActiveContextDetail(void) {
+    // 优先使用当前已追踪且经过过滤的活动视图控制器，避免触发敏感的窗口树遍历
+    UIViewController *activeVC = WDDActiveViewController;
+    if (activeVC) {
+        return isCurrentViewControllerDetails(activeVC);
+    }
+
     @try {
         UIWindow *window = nil;
         if (@available(iOS 13.0, *)) {
             for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive) {
                     for (UIWindow *w in scene.windows) {
+                        NSString *className = NSStringFromClass([w class]);
+                        // 绝对不能遍历任何与键盘、输入法有关的特殊窗口，以防导致远程输入法连接断开/重置
+                        if ([className rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+                            [className rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                            continue;
+                        }
                         if (w.isKeyWindow) {
                             window = w;
                             break;
+                        }
+                    }
+                    if (!window) {
+                        // 回退到该活动场景下的第一个非键盘类窗口
+                        for (UIWindow *w in scene.windows) {
+                            NSString *className = NSStringFromClass([w class]);
+                            if ([className rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location == NSNotFound &&
+                                [className rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location == NSNotFound) {
+                                window = w;
+                                break;
+                            }
                         }
                     }
                 }
@@ -128,8 +151,17 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
             }
         }
         if (!window) {
-            window = [UIApplication sharedApplication].keyWindow;
+            UIWindow *kw = [UIApplication sharedApplication].keyWindow;
+            NSString *className = NSStringFromClass([kw class]);
+            if ([className rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location == NSNotFound &&
+                [className rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location == NSNotFound) {
+                window = kw;
+            }
         }
+        if (!window && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(window)]) {
+            window = [[UIApplication sharedApplication].delegate performSelector:@selector(window)];
+        }
+        
         UIViewController *vc = window.rootViewController;
         while (vc) {
             if ([vc isKindOfClass:[UINavigationController class]]) {

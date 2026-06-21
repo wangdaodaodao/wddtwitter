@@ -10,24 +10,33 @@
 static BOOL isTargetCellOrStatusView(UIView *view) {
     if (!view) return NO;
     
+    // 过滤掉键盘与文本输入系统窗口中的视图，确保不影响系统输入法
+    if (view.window) {
+        NSString *windowClass = NSStringFromClass([view.window class]);
+        if ([windowClass rangeOfString:@"Keyboard" options:NSCaseInsensitiveSearch].location != NSNotFound ||
+            [windowClass rangeOfString:@"TextInput" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            return NO;
+        }
+    }
+    
     static Class t1StatusViewClass = nil;
     static Class t1StandardStatusViewClass = nil;
-    static Class tableViewCellClass = nil;
+    static Class tfnTableViewCellClass = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         t1StatusViewClass = objc_getClass("T1StatusView");
         t1StandardStatusViewClass = objc_getClass("T1StandardStatusView");
-        tableViewCellClass = objc_getClass("UITableViewCell");
+        tfnTableViewCellClass = objc_getClass("TFNTableViewCell");
     });
     
     if ([view isKindOfClass:t1StatusViewClass] || 
         [view isKindOfClass:t1StandardStatusViewClass] || 
-        [view isKindOfClass:tableViewCellClass]) {
+        (tfnTableViewCellClass && [view isKindOfClass:tfnTableViewCellClass])) {
         return YES;
     }
     
     UIView *sup = view.superview;
-    if (sup && [sup isKindOfClass:tableViewCellClass]) {
+    if (sup && tfnTableViewCellClass && [sup isKindOfClass:tfnTableViewCellClass]) {
         return YES;
     }
     return NO;

@@ -10,6 +10,25 @@
 // Bypasses NSUserDefaults entirely for maximum reliability
 // ==============================
 
+// ⚠️ 临时测试开关：忽略已存配置，强制开启若干视觉特征明显的功能。
+// 用途：设置页入口失效时验证 tweak 是否加载、hook 是否生效。
+// 验证完成后请改回 0。
+#define WDD_FORCE_TEST_DEFAULTS 0
+
+static NSDictionary *WDDTestForcedDefaults(void) {
+    static NSDictionary *table = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        table = @{
+            @"hide_blue_verified"            : @YES,   // 去蓝标
+            @"wdd_hide_timeline_view_count"  : @YES,   // 隐藏时间线浏览量
+            @"wdd_hide_translation_notice"   : @YES,   // 隐藏翻译提示
+            @"wdd_hide_grok_buttons"         : @YES,   // 隐藏 Grok 按钮
+        };
+    });
+    return table;
+}
+
 static NSString *_prefsPath = nil;
 static NSMutableDictionary *_prefsCache = nil;
 static NSInteger _filterConfigVersion = 0;
@@ -115,6 +134,12 @@ static void WDDSavePrefs(void) {
 
 + (BOOL)boolForKey:(NSString *)key {
     WDDEnsurePrefs();
+#if WDD_FORCE_TEST_DEFAULTS
+    NSNumber *forced = WDDTestForcedDefaults()[key];
+    if (forced) {
+        return YES;
+    }
+#endif
     return [_prefsCache[key] boolValue];
 }
 

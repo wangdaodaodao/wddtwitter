@@ -18,3 +18,6 @@ ipa_extracted*
 .windsurfrules
 .agents/
 *.py
+scratch/
+img/
+.workbuddy-ai/

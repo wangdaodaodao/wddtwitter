@@ -1,25 +1,10 @@
-//
-//  WDDUtils.m
-//  wddtwitter
-//
 
 #import "WDDUtils.h"
+#import "WDDManager.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <string.h>
 
-// ---------------------------------------------------------------
-// 类名匹配的快速实现
-//
-// 旧写法 NSStringFromClass(cls) + rangeOfString:NSCaseInsensitiveSearch 会在每次
-// 调用时新建一个 NSString，再做一次大小写不敏感扫描。这些检查位于 setFrame: /
-// layoutSubviews / sizeThatFits: / intrinsicContentSize 等超热路径，滚动时每秒
-// 可能被调用上千次，沿 superview 链还要乘上十几层。
-//
-// class_getName() 直接返回类对象里已有的 const char *，零分配；
-// strcasestr 是 libc 的大小写不敏感子串查找。两者组合的开销比旧写法低两个数量级，
-// 判定结果完全一致。
-// ---------------------------------------------------------------
 static inline BOOL WDDClassNameContains(Class cls, const char *needle) {
     if (!cls || !needle) return NO;
     const char *name = class_getName(cls);
@@ -50,7 +35,7 @@ BOOL WDDIsViewModelReply(id viewModel) {
     }
     if ([viewModel respondsToSelector:@selector(status)]) {
         id status = ((id (*)(id, SEL))objc_msgSend)(viewModel, @selector(status));
-        if (status && ![status isKindOfClass:[NSNumber class]]) { // Avoid AVContentKeyRequestStatus conflict
+        if (status && ![status isKindOfClass:[NSNumber class]]) {
             if ([status respondsToSelector:@selector(isReply)]) {
                 if (((BOOL (*)(id, SEL))objc_msgSend)(status, @selector(isReply))) {
                     return YES;
@@ -70,8 +55,7 @@ BOOL WDDActiveViewControllerIsDetail = NO;
 
 static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
     if (!vc) return NO;
-    
-    // 0. Recursively check parents to support child view controllers correctly
+
     UIViewController *p = vc.parentViewController;
     while (p) {
         if (WDDClassNameContains3(object_getClass(p), "Detail", "Focal", "Conversation")) {
@@ -79,8 +63,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
         }
         p = p.parentViewController;
     }
-    
-    // 1. Check conversationFocalStatusID
+
     if ([vc respondsToSelector:@selector(conversationFocalStatusID)]) {
         @try {
             long long focalID = ((long long (*)(id, SEL))objc_msgSend)(vc, @selector(conversationFocalStatusID));
@@ -89,8 +72,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
             }
         } @catch (NSException *e) {}
     }
-    
-    // 2. Check isConversationFocalStatus
+
     if ([vc respondsToSelector:@selector(isConversationFocalStatus)]) {
         @try {
             BOOL isFocal = ((BOOL (*)(id, SEL))objc_msgSend)(vc, @selector(isConversationFocalStatus));
@@ -99,8 +81,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
             }
         } @catch (NSException *e) {}
     }
-    
-    // 3. Check timeline property class name (for T1URTViewController with URTConversationTimeline)
+
     if ([vc respondsToSelector:@selector(timeline)]) {
         @try {
             id timeline = ((id (*)(id, SEL))objc_msgSend)(vc, @selector(timeline));
@@ -113,7 +94,6 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
         } @catch (NSException *e) {}
     }
 
-    // 4. Check scribeContext property (for tweet_detail/conversation pages)
     if ([vc respondsToSelector:@selector(scribeContext)]) {
         @try {
             id scribeContext = ((id (*)(id, SEL))objc_msgSend)(vc, @selector(scribeContext));
@@ -131,26 +111,25 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
             }
         } @catch (NSException *e) {}
     }
-    
-    // 5. Check class name of the view controller
+
     NSString *className = NSStringFromClass([vc class]);
     if ([className rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
         [className rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
         [className rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
         return YES;
     }
-    
+
     for (UIViewController *child in vc.childViewControllers) {
         if (isCurrentViewControllerDetails(child)) {
             return YES;
         }
     }
-    
+
     return NO;
 }
 
 BOOL WDDIsCurrentActiveContextDetail(void) {
-    // 优先使用当前已追踪且经过过滤的活动视图控制器，避免触发敏感的窗口树遍历
+
     UIViewController *activeVC = WDDActiveViewController;
     if (activeVC) {
         return isCurrentViewControllerDetails(activeVC);
@@ -180,7 +159,7 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
                         }
                     }
                     if (!window) {
-                        // 回退到该活动场景下的第一个非键盘类窗口
+
                         for (UIWindow *w in scene.windows) {
                             Class wClass = [w class];
                             static Class remoteKeyboardClass = nil;
@@ -222,12 +201,12 @@ BOOL WDDIsCurrentActiveContextDetail(void) {
         if (!window && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(window)]) {
             window = [[UIApplication sharedApplication].delegate performSelector:@selector(window)];
         }
-        
+
         UIViewController *vc = window.rootViewController;
         while (vc) {
             if ([vc isKindOfClass:[UINavigationController class]]) {
                 UINavigationController *nav = (UINavigationController *)vc;
-                // Proactively check topViewController during transition
+
                 UIViewController *top = nav.topViewController;
                 if (top && isCurrentViewControllerDetails(top)) {
                     return YES;
@@ -265,16 +244,14 @@ UIViewController *WDDViewControllerForView(UIView *view) {
 }
 
 BOOL WDDIsFocalContext(UIView *view) {
-    // 0. 最便宜的一步先做：焦点推文布局生成期间打的线程标记。
-    //    滚动时间线时这一步通常为 0，直接落到下面的实际判定。
+
     NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
     if ([threadDict[@"WDDIsFocalLayout"] boolValue]) {
         return YES;
     }
 
     if (view) {
-        // 1. 沿 superview 链找类名含 Focal / Detail 的祖先视图。
-        //    用 class_getName + strcasestr，避免每层都分配一个 NSString。
+
         UIView *temp = view;
         while (temp) {
             if (WDDClassNameContains(object_getClass(temp), "Focal") ||
@@ -283,22 +260,82 @@ BOOL WDDIsFocalContext(UIView *view) {
             }
             temp = temp.superview;
         }
-        
-        // 2. Walk responder chain to check owning view controller
+
         UIViewController *vc = WDDViewControllerForView(view);
         if (vc && isCurrentViewControllerDetails(vc)) {
             return YES;
         }
     }
-    
-    // 3. Global active controller fallback (Thread-safe reading of cached boolean)
+
     return WDDActiveViewControllerIsDetail;
 }
 
-// 精确判定：只有在「焦点推文」自己的布局生成过程中才算焦点上下文。
-// 时间线 / 会话页里的回复单元格走的是 T1StandardStatusViewLayoutStateGenerator，
-// 不会被标记，因此这些位置的图片功能可以正常工作。
 BOOL WDDIsInFocalLayout(void) {
     NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
     return [threadDict[@"WDDIsFocalLayout"] boolValue];
+}
+
+static BOOL WDDClassNameLooksLikeMediaViewer(Class cls) {
+    if (!cls) return NO;
+    const char *name = class_getName(cls);
+    if (!name) return NO;
+
+    if (strcasestr(name, "ComponentView") ||
+        strcasestr(name, "LayoutState") ||
+        strcasestr(name, "LayoutDelegate") ||
+        strcasestr(name, "Cell") ||
+        strcasestr(name, "StatusView") ||
+        strcasestr(name, "Adapter") ||
+        strcasestr(name, "ViewModel")) {
+        return NO;
+    }
+
+    static const char *keys[] = {
+        "Immersive",
+        "PhotoGallery", "PhotoViewer", "PhotoBrowser", "PhotoPreview",
+        "MediaViewer", "MediaGallery", "MediaPreview", "MediaBrowser",
+        "ImageGallery", "ImageViewer",
+        "Lightbox", "LightBox",
+        "FullScreen", "Fullscreen"
+    };
+    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
+        if (strcasestr(name, keys[i])) return YES;
+    }
+    return NO;
+}
+
+BOOL WDDIsMediaViewerController(UIViewController *vc) {
+    while (vc) {
+        if (WDDClassNameLooksLikeMediaViewer(object_getClass(vc))) return YES;
+        vc = vc.parentViewController;
+    }
+    return NO;
+}
+
+BOOL WDDIsMediaViewerContext(UIView *view) {
+    if (view) {
+        UIView *temp = view;
+        while (temp) {
+            if (WDDClassNameLooksLikeMediaViewer(object_getClass(temp))) return YES;
+            temp = temp.superview;
+        }
+
+        if (WDDIsMediaViewerController(WDDViewControllerForView(view))) return YES;
+
+        UIViewController *presented = view.window.rootViewController;
+        while (presented) {
+            if (WDDClassNameLooksLikeMediaViewer(object_getClass(presented))) return YES;
+            presented = presented.presentedViewController;
+        }
+    }
+
+    return WDDIsMediaViewerController(WDDActiveViewController);
+}
+
+BOOL WDDShouldHideTimelineMedia(UIView *view) {
+    if (![WDDManager hideTimelineImages]) return NO;
+    if (WDDIsFocalContext(view)) return NO;
+    if (WDDIsInFocalLayout()) return NO;
+    if (WDDIsMediaViewerContext(view)) return NO;
+    return YES;
 }

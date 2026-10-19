@@ -19,6 +19,5 @@ ipa_extracted*
 .agents/
 *.py
 scratch/
-img/
 .workbuddy-ai/
 dev/

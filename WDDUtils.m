@@ -267,3 +267,11 @@ BOOL WDDIsFocalContext(UIView *view) {
     // 4. Global active controller fallback (Thread-safe reading of cached boolean)
     return WDDActiveViewControllerIsDetail;
 }
+
+// 精确判定：只有在「焦点推文」自己的布局生成过程中才算焦点上下文。
+// 时间线 / 会话页里的回复单元格走的是 T1StandardStatusViewLayoutStateGenerator，
+// 不会被标记，因此这些位置的图片功能可以正常工作。
+BOOL WDDIsInFocalLayout(void) {
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    return [threadDict[@"WDDIsFocalLayout"] boolValue];
+}

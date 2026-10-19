@@ -7,6 +7,9 @@
 static BOOL g_isCalculatingQuotedLayout = NO;
 static BOOL g_hasAdjustedQuotedWidth = NO;
 
+// 前置声明（定义在文件靠后的位置）
+static BOOL WDDShouldFixSingleImageSize(id viewModel);
+
 // ==============================
 // UI Hiding Features
 // ==============================
@@ -614,27 +617,51 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     id state = %orig;
     if (!state) return state;
 
-    if (!([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil))) {
-        return state;
-    }
-
-    // 卡片类附件不是"图片/视频"，保持原样
-    id cardState = nil, unifiedCardState = nil;
+    // 卡片类附件不是"图片/视频"，保持原样。
+    // 引用推文（quotedStandardStatusViewLayoutState）也必须排除：
+    // 它的高度是由内部的图片布局状态算出来的，只要内层图片塌成 0，
+    // 外层卡片自己就会缩短。如果连外层一起归零，卡片会整块消失 / 留下空洞。
+    id cardState = nil, unifiedCardState = nil, quotedState = nil;
     @try { cardState = [state valueForKey:@"cardViewLayoutState"]; } @catch (__unused NSException *e) {}
     @try { unifiedCardState = [state valueForKey:@"unifiedCardViewLayoutState"]; } @catch (__unused NSException *e) {}
-    if (cardState || unifiedCardState) {
+    @try { quotedState = [state valueForKey:@"quotedStandardStatusViewLayoutState"]; } @catch (__unused NSException *e) {}
+    if (cardState || unifiedCardState || quotedState) {
         return state;
     }
 
-    @try { [state setValue:@(0) forKey:@"attachmentType"]; } @catch (__unused NSException *e) {}
+    // 屏蔽时用宽松判定（任一信号认为在焦点页就放行），避免误伤详情页；
+    // 固定尺寸时用精确判定，否则详情页 / 会话页里的整片时间线都会失效。
+    if ([WDDManager hideTimelineImages] &&
+        !(WDDIsFocalContext(nil) || WDDIsInFocalLayout())) {
+        @try { [state setValue:@(0) forKey:@"attachmentType"]; } @catch (__unused NSException *e) {}
 
-    if ([state respondsToSelector:NSSelectorFromString(@"setSize:")]) {
-        @try {
-            [state setValue:[NSValue valueWithCGSize:CGSizeZero] forKey:@"size"];
-        } @catch (__unused NSException *e) {}
+        if ([state respondsToSelector:NSSelectorFromString(@"setSize:")]) {
+            @try {
+                [state setValue:[NSValue valueWithCGSize:CGSizeZero] forKey:@"size"];
+            } @catch (__unused NSException *e) {}
+        }
+        if ([state respondsToSelector:NSSelectorFromString(@"setUseAdaptiveMediaLayout:")]) {
+            @try { [state setValue:@NO forKey:@"useAdaptiveMediaLayout"]; } @catch (__unused NSException *e) {}
+        }
+        return state;
     }
-    if ([state respondsToSelector:NSSelectorFromString(@"setUseAdaptiveMediaLayout:")]) {
-        @try { [state setValue:@NO forKey:@"useAdaptiveMediaLayout"]; } @catch (__unused NSException *e) {}
+
+    // 「固定单图大小」：直接改写附件布局状态的高度为 16:9。
+    // 只处理 attachmentType == 2（单张图片 / 单个视频），多图轮播是 3、
+    // 引用推文卡片是 5，都不动 —— 这两个值是从实际运行日志里读出来的。
+    if ([WDDManager enableSingleImageSizing] && !WDDIsInFocalLayout() && !g_isCalculatingQuotedLayout) {
+        unsigned long long attType = 0;
+        @try { attType = [[state valueForKey:@"attachmentType"] unsignedLongLongValue]; } @catch (__unused NSException *e) {}
+        if (attType == 2) {
+            CGSize size = CGSizeZero;
+            @try { size = [[state valueForKey:@"size"] CGSizeValue]; } @catch (__unused NSException *e) {}
+            if (size.width > 0 && size.height > 0) {
+                size.height = size.width * 9.0 / 16.0;
+                if ([state respondsToSelector:NSSelectorFromString(@"setSize:")]) {
+                    @try { [state setValue:[NSValue valueWithCGSize:size] forKey:@"size"]; } @catch (__unused NSException *e) {}
+                }
+            }
+        }
     }
 
     return state;
@@ -656,54 +683,110 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     return result;
 }
 
-- (CGSize)_t1_verticalMediaSizeForAspectRatio:(double)aspectRatio width:(double)width anatomyFeatures:(id)anatomyFeatures {
-    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+// 取视图模型里的媒体数组；拿不到时返回 nil（表示"未知"）
+static NSArray *WDDMediaArrayForViewModel(id viewModel) {
+    if (!viewModel) return nil;
+    NSArray *media = nil;
+    @try {
+        if ([viewModel respondsToSelector:@selector(inlineMediaInfos)]) {
+            media = [viewModel inlineMediaInfos];
+        }
+        if (![media isKindOfClass:[NSArray class]] || media.count == 0) {
+            if ([viewModel respondsToSelector:@selector(representedMediaEntities)]) {
+                media = [viewModel representedMediaEntities];
+            }
+        }
+    } @catch (__unused NSException *e) {}
+    return [media isKindOfClass:[NSArray class]] ? media : nil;
+}
+
+// 判断单个媒体是不是视频（"固定单图大小"只针对图片）
+// 注意：只认"类名含 Video"和明确的布尔开关，不能因为 videoInfo 非 nil 就判定视频 ——
+// 不少图片的媒体对象也带一个占位的 videoInfo，那样会把所有单图都误判掉。
+static BOOL WDDMediaInfoIsVideo(id info) {
+    if (!info) return NO;
+
+    NSString *cls = NSStringFromClass([info class]);
+    if ([cls rangeOfString:@"Video" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+        return YES;
+    }
+    for (NSString *key in @[@"isVideo", @"isMediaEntityVideo", @"isPlayable"]) {
+        if ([info respondsToSelector:NSSelectorFromString(key)]) {
+            BOOL b = NO;
+            @try { b = [[info valueForKey:key] boolValue]; } @catch (__unused NSException *e) {}
+            if (b) return YES;
+        }
+    }
+    return NO;
+}
+
+// 「固定单图大小」的总开关判定。
+// 关键改动：这里不再用 WDDIsFocalContext(nil)。
+// 那个函数只要当前页面是推文详情 / 会话页就返回 YES，而会话页里的回复单元格
+// 走的正是标准时间线布局 —— 于是整个详情页的图片尺寸全部失效，
+// 这就是「功能开关打开了却毫无反应」的真正原因。
+// 现在改用 WDDIsInFocalLayout()，只认真正的焦点推文布局。
+static BOOL WDDShouldFixSingleImageSize(id viewModel) {
+    if (![WDDManager enableSingleImageSizing]) return NO;
+    if (g_isCalculatingQuotedLayout) return NO;
+    if (WDDIsInFocalLayout()) return NO;        // 焦点推文保持原始比例
+
+    NSArray *media = WDDMediaArrayForViewModel(viewModel);
+    if (media) {
+        if (media.count != 1) return NO;                       // 多图不处理
+        if (WDDMediaInfoIsVideo(media.firstObject)) return NO; // 视频不处理
+        return YES;
+    }
+    // 拿不到媒体数组（不同视图模型的实现差异）时按单图处理，
+    // 否则这个功能会静默失效。
+    return YES;
+}
+
+// 12.35 的竖版照片尺寸方法（旧版叫 _t1_verticalMediaSizeForAspectRatio:width:anatomyFeatures:，已不存在）
+- (CGSize)_t1_verticalPhotoSizeForAspectRatio:(double)aspectRatio width:(double)width {
+    if ([WDDManager hideTimelineImages] &&
+        !(WDDIsFocalContext(nil) || WDDIsInFocalLayout())) {
         return CGSizeZero;
     }
-    if (![WDDManager enableSingleImageSizing]) {
+    if (![WDDManager enableSingleImageSizing] || g_isCalculatingQuotedLayout) {
         return %orig;
     }
-    if (g_isCalculatingQuotedLayout) {
-        return CGSizeZero;
-    }
-    if (!g_isCalculatingQuotedLayout && [self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+    if (WDDIsInFocalLayout()) {
         return %orig;
     }
-    return %orig(16.0 / 9.0, width, anatomyFeatures);
+    if (width <= 0) {
+        return %orig;
+    }
+    return CGSizeMake(width, width * 9.0 / 16.0);
 }
 
 - (CGSize)_t1_photoVideoForwardViewSizeForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width attachmentType:(unsigned long long)type {
-    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+    if ([WDDManager hideTimelineImages] &&
+        !(WDDIsFocalContext(nil) || WDDIsInFocalLayout())) {
         return CGSizeZero;
     }
-    if (![WDDManager enableSingleImageSizing]) {
+    if (![WDDManager enableSingleImageSizing] || g_isCalculatingQuotedLayout) {
         return %orig;
     }
-    if (g_isCalculatingQuotedLayout) {
-        return CGSizeZero;
+    if (WDDIsInFocalLayout()) {
+        return %orig;
     }
+
     CGSize size = %orig;
-    if (!g_isCalculatingQuotedLayout && [self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+
+    // 实测日志确认：attachmentType == 2 就是「单张图片 / 单个视频」，
+    // 3 是多图轮播，5 是引用推文卡片。所以这里直接按 2 判断，
+    // 不再依赖取不到的媒体数组（运行日志里媒体数组一直是 nil）。
+    if (type != 2) {
         return size;
     }
-    
-    if (type == 2) {
-        NSArray *media = nil;
-        if ([viewModel respondsToSelector:@selector(inlineMediaInfos)]) {
-            media = [viewModel inlineMediaInfos];
-        } else if ([viewModel respondsToSelector:@selector(representedMediaEntities)]) {
-            media = [viewModel representedMediaEntities];
-        }
-        
-        if (media == nil || media.count == 1) {
-            double targetHeight = width * (9.0 / 16.0);
-            if (targetHeight <= 0) {
-                targetHeight = 100.0;
-            }
-            size.height = targetHeight;
-        }
+
+    CGFloat baseWidth = size.width > 0 ? size.width : width;
+    // 太小的尺寸多半是引用卡片里的缩略图，别动它
+    if (baseWidth < 200.0) {
+        return size;
     }
-    return size;
+    return CGSizeMake(baseWidth, baseWidth * 9.0 / 16.0);
 }
 
 - (id)_t1_unifiedCardViewLayoutStateForViewModel:(id)viewModel unifiedCard:(id)unifiedCard shouldHideFooter:(BOOL)shouldHideFooter layoutMetrics:(id)layoutMetrics width:(double)width {
@@ -734,12 +817,16 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
 - (unsigned long long)attachmentType {
     unsigned long long type = %orig;
     if (type == 0) return 0;
-    if (!([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil))) return type;
+    if (!([WDDManager hideTimelineImages] &&
+          !(WDDIsFocalContext(nil) || WDDIsInFocalLayout()))) return type;
 
-    id cardState = nil, unifiedCardState = nil;
+    // 卡片类、引用推文卡片都不算"图片/视频"：它们的高度由内部子状态决定，
+    // 把外层的 attachmentType 抹掉并不会让它变矮，只会留下空洞。
+    id cardState = nil, unifiedCardState = nil, quotedState = nil;
     @try { cardState = [self valueForKey:@"cardViewLayoutState"]; } @catch (__unused NSException *e) {}
     @try { unifiedCardState = [self valueForKey:@"unifiedCardViewLayoutState"]; } @catch (__unused NSException *e) {}
-    if (cardState || unifiedCardState) return type;
+    @try { quotedState = [self valueForKey:@"quotedStandardStatusViewLayoutState"]; } @catch (__unused NSException *e) {}
+    if (cardState || unifiedCardState || quotedState) return type;
 
     return 0;
 }
@@ -749,19 +836,9 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
 %hook T1QuotedStandardStatusView
 - (void)layoutSubviews {
     %orig;
-    if ([WDDManager enableSingleImageSizing]) {
-        UIView *mediaView = nil;
-        if ([self respondsToSelector:@selector(photoVideoForwardView)]) {
-            mediaView = [self photoVideoForwardView];
-        }
-        if (!mediaView && [self respondsToSelector:@selector(visibleMediaForwardView)]) {
-            mediaView = [self visibleMediaForwardView];
-        }
-        if (mediaView) {
-            mediaView.hidden = YES;
-            mediaView.frame = CGRectZero;
-        }
-    }
+    // 注意：这里以前有一段「enableSingleImageSizing 时把引用推文的图片藏掉」的代码，
+    // 那是彻底错的 —— 图片被 hidden、frame 归零，但布局状态里的高度还在，
+    // 结果就是引用推文 / 转帖 / 回复里出现一块空白占位。已删除。
     if ([WDDManager hideAvatar]) {
         UIView *avatarView = nil;
         for (UIView *subview in ((UIView *)self).subviews) {
@@ -898,7 +975,8 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
-    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+    // 详情页/焦点页保持原始比例，只在时间线里套用固定尺寸
+    if (WDDIsFocalContext(self)) {
         return %orig;
     }
     if ([self respondsToSelector:@selector(numberOfMediaItems)]) {
@@ -924,7 +1002,8 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
         return;
     }
     
-    if ([self respondsToSelector:@selector(displayType)] && [self displayType] == 1) {
+    // 详情页/焦点页保持原始比例
+    if (WDDIsFocalContext(self)) {
         return;
     }
     

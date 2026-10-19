@@ -406,9 +406,9 @@
     id colorPalette = [currentPalette colorPalette];
     UIColor *subtitleColor = [colorPalette performSelector:@selector(tabBarItemColor)];
     
-    NSString *line1 = @"WddTwitter v1.4.0\n";
-    NSString *line2 = @"基于 X 版本 11.90\n";
-    NSString *line4 = @"更多信息：wangdaodao.me/2026/wddtwitter/";
+    NSString *line1 = @"WddTwitter v1.2.1\n";
+    NSString *line2 = @"基于 X 版本 12.35\n";
+    NSString *line4 = @"更多信息：wangdaodao.me";
     
     NSMutableAttributedString *attrStr = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@%@", line1, line2, line4]];
     NSRange fullRange = NSMakeRange(0, attrStr.length);
@@ -421,7 +421,7 @@
     [attrStr addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:fullRange];
     
     // Add links
-    [attrStr addAttribute:NSLinkAttributeName value:@"https://wangdaodao.me/2026/wddtwitter/" range:[attrStr.string rangeOfString:@"wangdaodao.me/2026/wddtwitter/"]];
+    [attrStr addAttribute:NSLinkAttributeName value:@"https://wangdaodao.me/ios-jailbreak" range:[attrStr.string rangeOfString:@"wangdaodao.me/2026/wddtwitter/"]];
     
     footerTextView.attributedText = attrStr;
     footerTextView.linkTextAttributes = @{NSForegroundColorAttributeName: subtitleColor, NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle)};

@@ -591,6 +591,55 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     return %orig;
 }
 
+// 视频自动播放容器（图片没有，视频才有）。
+// 屏蔽媒体时一并掐掉，避免它继续参与布局留下空白。
+- (id)autoplayPlayerContainer {
+    if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil)) {
+        return nil;
+    }
+    return %orig;
+}
+
+// 关键修复：屏蔽图片/视频后视频仍留占位空白。
+//
+// 原因：附件布局状态（T1StandardStatusAttachmentViewLayoutState）的高度由
+// attachmentType 决定。旧逻辑只在 attachmentType == 2（图片）时归零，
+// 视频的枚举值不是 2，于是布局仍按媒体尺寸预留了高度 —— 视图被藏起来了，
+// 空间却还在，表现就是「视频没了但有一块空白」。
+//
+// 这里改为不依赖具体枚举值：只要这个附件不是卡片（card / unifiedCard），
+// 就把布局状态压成 0 尺寸 + 0 附件类型。这样图片 / 视频 / GIF 一并生效，
+// 而投票、卡片等非媒体附件不受影响。
+- (id)layoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics {
+    id state = %orig;
+    if (!state) return state;
+
+    if (!([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil))) {
+        return state;
+    }
+
+    // 卡片类附件不是"图片/视频"，保持原样
+    id cardState = nil, unifiedCardState = nil;
+    @try { cardState = [state valueForKey:@"cardViewLayoutState"]; } @catch (__unused NSException *e) {}
+    @try { unifiedCardState = [state valueForKey:@"unifiedCardViewLayoutState"]; } @catch (__unused NSException *e) {}
+    if (cardState || unifiedCardState) {
+        return state;
+    }
+
+    @try { [state setValue:@(0) forKey:@"attachmentType"]; } @catch (__unused NSException *e) {}
+
+    if ([state respondsToSelector:NSSelectorFromString(@"setSize:")]) {
+        @try {
+            [state setValue:[NSValue valueWithCGSize:CGSizeZero] forKey:@"size"];
+        } @catch (__unused NSException *e) {}
+    }
+    if ([state respondsToSelector:NSSelectorFromString(@"setUseAdaptiveMediaLayout:")]) {
+        @try { [state setValue:@NO forKey:@"useAdaptiveMediaLayout"]; } @catch (__unused NSException *e) {}
+    }
+
+    return state;
+}
+
 - (id)_t1_quotedStandardStatusViewLayoutStateForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width {
     g_isCalculatingQuotedLayout = YES;
     BOOL adjusted = NO;
@@ -671,6 +720,28 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
         return result;
     }
     return %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
+}
+
+%end
+
+// 与上面的 layoutStateForViewModel: 配套：让附件布局状态对外报告「无附件」。
+// 同样排除卡片类（card / unifiedCard），避免把投票、外链卡片一起藏掉。
+@interface T1StandardStatusAttachmentViewLayoutState : NSObject
+@end
+
+%hook T1StandardStatusAttachmentViewLayoutState
+
+- (unsigned long long)attachmentType {
+    unsigned long long type = %orig;
+    if (type == 0) return 0;
+    if (!([WDDManager hideTimelineImages] && !WDDIsFocalContext(nil))) return type;
+
+    id cardState = nil, unifiedCardState = nil;
+    @try { cardState = [self valueForKey:@"cardViewLayoutState"]; } @catch (__unused NSException *e) {}
+    @try { unifiedCardState = [self valueForKey:@"unifiedCardViewLayoutState"]; } @catch (__unused NSException *e) {}
+    if (cardState || unifiedCardState) return type;
+
+    return 0;
 }
 
 %end

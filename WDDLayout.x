@@ -631,17 +631,24 @@ static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
         return state;
     }
 
-    // 「固定单图大小」：直接改写附件布局状态的高度为 16:9。
-    // 只处理 attachmentType == 2（单张图片 / 单个视频），多图轮播是 3、
-    // 引用推文卡片是 5，都不动 —— 这两个值是从实际运行日志里读出来的。
-    if ([WDDManager enableSingleImageSizing] && !WDDIsInFocalLayout() && !g_isCalculatingQuotedLayout) {
-        unsigned long long attType = 0;
-        @try { attType = [[state valueForKey:@"attachmentType"] unsignedLongLongValue]; } @catch (__unused NSException *e) {}
-        if (attType == 2) {
-            CGSize size = CGSizeZero;
-            @try { size = [[state valueForKey:@"size"] CGSizeValue]; } @catch (__unused NSException *e) {}
-            if (size.width > 0 && size.height > 0) {
-                size.height = size.width * 9.0 / 16.0;
+    // 「固定图片大小」：直接改写附件布局状态的高度为 16:9。
+    //
+    // 这里是**兜底层**，必须覆盖所有媒体路径 —— 实测有些图片/视频并不经过
+    // _t1_photoVideoForwardViewSizeForViewModel:（比如视频播放器容器、轮播），
+    // 只在尺寸方法里改就会漏掉一部分，表现就是「有的能固定、有的不行」。
+    // 所以在拿到最终布局状态后再统一压一次高度。
+    //
+    // 只压矮、不拉高（target < size.height 才改）：
+    //   · 竖图 / 方图 / 高视频 —— 压成 16:9，符合预期
+    //   · 已经很宽的横图 —— 保持不变，不会被拉伸变形
+    //   · 敏感内容横幅等矮元素 —— 高度远小于 16:9，天然不会被误伤
+    if ([WDDManager enableSingleImageSizing]) {
+        CGSize size = CGSizeZero;
+        @try { size = [[state valueForKey:@"size"] CGSizeValue]; } @catch (__unused NSException *e) {}
+        if (size.width > 0 && size.height > 0) {
+            CGFloat target = size.width * 9.0 / 16.0;
+            if (target < size.height - 0.5) {
+                size.height = target;
                 if ([state respondsToSelector:NSSelectorFromString(@"setSize:")]) {
                     @try { [state setValue:[NSValue valueWithCGSize:size] forKey:@"size"]; } @catch (__unused NSException *e) {}
                 }
@@ -728,21 +735,30 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
 }
 
 // 12.35 的竖版照片尺寸方法（旧版叫 _t1_verticalMediaSizeForAspectRatio:width:anatomyFeatures:，已不存在）
+// 竖图是「高度很夸张」的主要来源，这里直接按可用宽度算成 16:9。
+// 注意这里返回的宽度用传入的 width（可用宽度），原实现会缩成 314，
+// 那正是「有的图片宽度不统一」的原因。
 - (CGSize)_t1_verticalPhotoSizeForAspectRatio:(double)aspectRatio width:(double)width {
     if ([WDDManager hideTimelineImages] &&
         !(WDDIsFocalContext(nil) || WDDIsInFocalLayout())) {
         return CGSizeZero;
     }
-    if (![WDDManager enableSingleImageSizing] || g_isCalculatingQuotedLayout) {
-        return %orig;
-    }
-    if (WDDIsInFocalLayout()) {
+    if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
     if (width <= 0) {
         return %orig;
     }
-    return CGSizeMake(width, width * 9.0 / 16.0);
+    CGSize orig = %orig;
+    // 宽度沿用原实现的宽度（它通常比可用宽度略小一点，是内边距造成的），
+    // 直接用可用宽度会溢出几 pt。这里只统一高度比例。
+    CGFloat w = orig.width > 0 ? orig.width : width;
+    CGFloat target = w * 9.0 / 16.0;
+    // 只压矮不拉高，避免把本来就矮的图撑高
+    if (orig.height > 0 && target >= orig.height) {
+        return orig;
+    }
+    return CGSizeMake(w, target);
 }
 
 - (CGSize)_t1_photoVideoForwardViewSizeForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width attachmentType:(unsigned long long)type {
@@ -750,28 +766,24 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
         !(WDDIsFocalContext(nil) || WDDIsInFocalLayout())) {
         return CGSizeZero;
     }
-    if (![WDDManager enableSingleImageSizing] || g_isCalculatingQuotedLayout) {
-        return %orig;
-    }
-    if (WDDIsInFocalLayout()) {
+    if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
 
     CGSize size = %orig;
 
-    // 实测日志确认：attachmentType == 2 就是「单张图片 / 单个视频」，
-    // 3 是多图轮播，5 是引用推文卡片。所以这里直接按 2 判断，
-    // 不再依赖取不到的媒体数组（运行日志里媒体数组一直是 nil）。
-    if (type != 2) {
-        return size;
-    }
-
+    // 不再按 attachmentType 过滤，也不再按宽度阈值过滤 ——
+    // 实测多图轮播、引用卡片内的缩略图走的是不同分支，逐个加条件必然漏。
+    // 统一规则：宽度用原尺寸（保证铺满），高度只压矮不拉高。
     CGFloat baseWidth = size.width > 0 ? size.width : width;
-    // 太小的尺寸多半是引用卡片里的缩略图，别动它
-    if (baseWidth < 200.0) {
+    if (baseWidth <= 0) {
         return size;
     }
-    return CGSizeMake(baseWidth, baseWidth * 9.0 / 16.0);
+    CGFloat target = baseWidth * 9.0 / 16.0;
+    if (size.height > 0 && target >= size.height) {
+        return size;
+    }
+    return CGSizeMake(baseWidth, target);
 }
 
 - (id)_t1_unifiedCardViewLayoutStateForViewModel:(id)viewModel unifiedCard:(id)unifiedCard shouldHideFooter:(BOOL)shouldHideFooter layoutMetrics:(id)layoutMetrics width:(double)width {
@@ -960,10 +972,6 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
     if (![WDDManager enableSingleImageSizing]) {
         return %orig;
     }
-    // 详情页/焦点页保持原始比例，只在时间线里套用固定尺寸
-    if (WDDIsFocalContext(self)) {
-        return %orig;
-    }
     if ([self respondsToSelector:@selector(numberOfMediaItems)]) {
         if ([self numberOfMediaItems] == 1) {
             return 2; // UIViewContentModeScaleAspectFill
@@ -990,11 +998,10 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
         return;
     }
     
-    // 详情页/焦点页保持原始比例
-    if (WDDIsFocalContext(self)) {
-        return;
-    }
-    
+    // 注意：这里不再跳过详情页/焦点页。
+    // 布局那边已经把高度统一压成 16:9，如果视图层还按原始比例居中显示，
+    // 就会出现「框是 16:9、图却缩在中间带黑边」的观感，等于没固定。
+    // 所以统一用 aspectFill 填满这个框（裁掉多余部分）。
     if ([self respondsToSelector:@selector(numberOfMediaItems)]) {
         if ([self numberOfMediaItems] == 1) {
             self.clipsToBounds = YES;

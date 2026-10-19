@@ -421,7 +421,7 @@
     [attrStr addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:fullRange];
     
     // Add links
-    [attrStr addAttribute:NSLinkAttributeName value:@"https://wangdaodao.me/ios-jailbreak" range:[attrStr.string rangeOfString:@"wangdaodao.me/2026/wddtwitter/"]];
+    [attrStr addAttribute:NSLinkAttributeName value:@"https://wangdaodao.me/ios-jailbreak" range:[attrStr.string rangeOfString:@"wangdaodao.me/2026/ios-jailbreak/"]];
     
     footerTextView.attributedText = attrStr;
     footerTextView.linkTextAttributes = @{NSForegroundColorAttributeName: subtitleColor, NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle)};

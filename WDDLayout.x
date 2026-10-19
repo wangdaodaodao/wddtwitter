@@ -3,6 +3,7 @@
 #import "TWHeaders.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <string.h>
 
 static BOOL g_isCalculatingQuotedLayout = NO;
 static BOOL g_hasAdjustedQuotedWidth = NO;
@@ -327,53 +328,26 @@ typedef NS_ENUM(NSInteger, WDDContextViewType) {
     WDDContextViewTypeConversation
 };
 
+// 类名子串判断：class_getName 返回类对象里现成的 C 字符串，零分配。
+// 这两个函数在 layoutSubviews 里按子视图逐个调用，原来的写法每层都建 NSString、
+// 还套了 @synchronized 互斥锁 —— 结果又慢又可能成为多线程布局的争用点。
+// 换成直接扫 C 字符串后，锁和缓存都可以彻底去掉。
+static inline BOOL WDDClassContains(Class cls, const char *needle) {
+    if (!cls || !needle) return NO;
+    const char *name = class_getName(cls);
+    return name ? (strcasestr(name, needle) != NULL) : NO;
+}
+
 static BOOL isAvatarClass(Class cls) {
-    if (!cls) return NO;
-    static NSMutableDictionary<Class, NSNumber *> *cache = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        cache = [[NSMutableDictionary alloc] init];
-    });
-    @synchronized(cache) {
-        NSNumber *cached = cache[(id)cls];
-        if (cached) {
-            return [cached boolValue];
-        }
-        NSString *className = NSStringFromClass(cls);
-        BOOL result = [className rangeOfString:@"Avatar" options:NSCaseInsensitiveSearch].location != NSNotFound;
-        cache[(id)cls] = @(result);
-        return result;
-    }
+    return WDDClassContains(cls, "Avatar");
 }
 
 static WDDContextViewType contextViewTypeForClass(Class cls) {
     if (!cls) return WDDContextViewTypeNone;
-    
-    static NSMutableDictionary<Class, NSNumber *> *cache = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        cache = [[NSMutableDictionary alloc] init];
-    });
-    
-    @synchronized(cache) {
-        NSNumber *cachedType = cache[(id)cls];
-        if (cachedType) {
-            return [cachedType integerValue];
-        }
-        
-        NSString *className = NSStringFromClass(cls);
-        WDDContextViewType type = WDDContextViewTypeNone;
-        if ([className rangeOfString:@"SocialContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
-            type = WDDContextViewTypeSocial;
-        } else if ([className rangeOfString:@"TweetContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
-            type = WDDContextViewTypeTweet;
-        } else if ([className rangeOfString:@"ConversationContext" options:NSCaseInsensitiveSearch].location != NSNotFound) {
-            type = WDDContextViewTypeConversation;
-        }
-        
-        cache[(id)cls] = @(type);
-        return type;
-    }
+    if (WDDClassContains(cls, "SocialContext"))       return WDDContextViewTypeSocial;
+    if (WDDClassContains(cls, "TweetContext"))        return WDDContextViewTypeTweet;
+    if (WDDClassContains(cls, "ConversationContext")) return WDDContextViewTypeConversation;
+    return WDDContextViewTypeNone;
 }
 
 // Helper: detect if a subview is a conversation connector line.
@@ -562,15 +536,26 @@ static void adjustStatusViewLayout(UIView *statusView) {
 // Timeline Media Sizing and Layout Adjustments
 // ==============================
 
+// 让图片视图填满给定区域。
+//
+// 旧实现对每一个子视图都无条件执行 subview.frame = view.bounds，再递归下去。
+// 两个问题：
+//   1) 只有 UIImageView 需要这个处理，其它子视图被无故改 frame；
+//   2) 它在 layoutSubviews 里被调用，设 frame 又会触发被 hook 的 setFrame:，
+//      等于把「沿 superview 链找焦点上下文」的开销按子视图数量放大一遍。
+// 现在只处理 UIImageView，并且尺寸没变就不赋值（避免多余布局 pass）。
 static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     if (!view) return;
     if ([view isKindOfClass:[UIImageView class]]) {
-        view.frame = rect;
+        if (!CGRectEqualToRect(view.frame, rect)) {
+            view.frame = rect;
+        }
         view.clipsToBounds = YES;
-        view.contentMode = UIViewContentModeScaleAspectFill;
+        if (view.contentMode != UIViewContentModeScaleAspectFill) {
+            view.contentMode = UIViewContentModeScaleAspectFill;
+        }
     }
     for (UIView *subview in view.subviews) {
-        subview.frame = view.bounds;
         makeImageViewsAspectFill(subview, view.bounds);
     }
 }
@@ -990,7 +975,10 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
 - (void)layoutSubviews {
     if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
         self.hidden = YES;
-        self.frame = CGRectZero;
+        // 只在确实还没归零时才赋值，避免在 layoutSubviews 里反复触发额外的布局 pass
+        if (!CGRectIsEmpty(self.frame)) {
+            self.frame = CGRectZero;
+        }
         for (UIView *subview in self.subviews) {
             subview.hidden = YES;
         }
@@ -1057,7 +1045,9 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
 - (void)layoutSubviews {
     if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
         self.hidden = YES;
-        self.frame = CGRectZero;
+        if (!CGRectIsEmpty(self.frame)) {
+            self.frame = CGRectZero;
+        }
         return;
     }
     %orig;
@@ -1100,7 +1090,9 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
 - (void)layoutSubviews {
     if ([WDDManager hideTimelineImages] && !WDDIsFocalContext(self)) {
         self.hidden = YES;
-        self.frame = CGRectZero;
+        if (!CGRectIsEmpty(self.frame)) {
+            self.frame = CGRectZero;
+        }
         return;
     }
     %orig;

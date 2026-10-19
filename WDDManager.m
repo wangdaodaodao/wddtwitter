@@ -38,6 +38,22 @@ static BOOL _lastEnableRegex;
 static NSString *_lastKeywords;
 static NSString *_lastRegexes;
 
+// ---------------------------------------------------------------
+// 热点开关缓存
+//
+// hideTimelineImages / enableSingleImageSizing 这两个开关在布局、setFrame:、
+// sizeThatFits:、intrinsicContentSize 等超热路径里被读取，一秒可能几千次。
+// 每次都走「字符串键查 NSMutableDictionary」纯属浪费，这里缓存成两个静态 BOOL，
+// 只在配置真正变化时刷新。语义与 boolForKey: 完全一致。
+// ---------------------------------------------------------------
+static BOOL _hotCacheHideTimelineImages = NO;
+static BOOL _hotCacheEnableSingleImageSizing = NO;
+
+static void WDDRefreshHotCache(void) {
+    _hotCacheHideTimelineImages = [_prefsCache[@"wdd_hide_timeline_images"] boolValue];
+    _hotCacheEnableSingleImageSizing = [_prefsCache[@"wdd_enable_single_image_sizing"] boolValue];
+}
+
 static void WDDEnsurePrefs(void) {
     if (_prefsPath) return;
     
@@ -91,6 +107,7 @@ static void WDDEnsurePrefs(void) {
         
         [_prefsCache writeToFile:_prefsPath atomically:YES];
     }
+    WDDRefreshHotCache();
 }
 
 static void WDDSavePrefs(void) {
@@ -153,6 +170,7 @@ static void WDDSavePrefs(void) {
     WDDEnsurePrefs();
     _prefsCache[key] = @(value);
     WDDSavePrefs();
+    WDDRefreshHotCache();
     [self updateFilterVersion];
 }
 
@@ -164,6 +182,7 @@ static void WDDSavePrefs(void) {
         [_prefsCache removeObjectForKey:key];
     }
     WDDSavePrefs();
+    WDDRefreshHotCache();
     [self updateFilterVersion];
 }
 
@@ -171,6 +190,7 @@ static void WDDSavePrefs(void) {
     WDDEnsurePrefs();
     [_prefsCache removeObjectForKey:key];
     WDDSavePrefs();
+    WDDRefreshHotCache();
 }
 
 // ==============================
@@ -222,7 +242,9 @@ static void WDDSavePrefs(void) {
 }
 
 + (BOOL)enableSingleImageSizing {
-    return [self boolForKey:@"wdd_enable_single_image_sizing"];
+    // 热点路径：直接读缓存，不再做字符串键字典查找
+    WDDEnsurePrefs();
+    return _hotCacheEnableSingleImageSizing;
 }
 
 + (BOOL)hideAccountLabels {
@@ -246,7 +268,9 @@ static void WDDSavePrefs(void) {
 }
 
 + (BOOL)hideTimelineImages {
-    return [self boolForKey:@"wdd_hide_timeline_images"];
+    // 热点路径：直接读缓存，不再做字符串键字典查找
+    WDDEnsurePrefs();
+    return _hotCacheHideTimelineImages;
 }
 
 @end

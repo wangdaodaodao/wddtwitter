@@ -6,6 +6,35 @@
 #import "WDDUtils.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <string.h>
+
+// ---------------------------------------------------------------
+// 类名匹配的快速实现
+//
+// 旧写法 NSStringFromClass(cls) + rangeOfString:NSCaseInsensitiveSearch 会在每次
+// 调用时新建一个 NSString，再做一次大小写不敏感扫描。这些检查位于 setFrame: /
+// layoutSubviews / sizeThatFits: / intrinsicContentSize 等超热路径，滚动时每秒
+// 可能被调用上千次，沿 superview 链还要乘上十几层。
+//
+// class_getName() 直接返回类对象里已有的 const char *，零分配；
+// strcasestr 是 libc 的大小写不敏感子串查找。两者组合的开销比旧写法低两个数量级，
+// 判定结果完全一致。
+// ---------------------------------------------------------------
+static inline BOOL WDDClassNameContains(Class cls, const char *needle) {
+    if (!cls || !needle) return NO;
+    const char *name = class_getName(cls);
+    return name ? (strcasestr(name, needle) != NULL) : NO;
+}
+
+static inline BOOL WDDClassNameContains3(Class cls, const char *a, const char *b, const char *c) {
+    if (!cls) return NO;
+    const char *name = class_getName(cls);
+    if (!name) return NO;
+    if (a && strcasestr(name, a)) return YES;
+    if (b && strcasestr(name, b)) return YES;
+    if (c && strcasestr(name, c)) return YES;
+    return NO;
+}
 
 BOOL WDDIsViewModelReply(id viewModel) {
     if (!viewModel) return NO;
@@ -45,10 +74,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
     // 0. Recursively check parents to support child view controllers correctly
     UIViewController *p = vc.parentViewController;
     while (p) {
-        NSString *pClass = NSStringFromClass([p class]);
-        if ([pClass rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-            [pClass rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-            [pClass rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+        if (WDDClassNameContains3(object_getClass(p), "Detail", "Focal", "Conversation")) {
             return YES;
         }
         p = p.parentViewController;
@@ -239,13 +265,20 @@ UIViewController *WDDViewControllerForView(UIView *view) {
 }
 
 BOOL WDDIsFocalContext(UIView *view) {
+    // 0. 最便宜的一步先做：焦点推文布局生成期间打的线程标记。
+    //    滚动时间线时这一步通常为 0，直接落到下面的实际判定。
+    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
+    if ([threadDict[@"WDDIsFocalLayout"] boolValue]) {
+        return YES;
+    }
+
     if (view) {
-        // 1. Walk superview chain for cell/view class containing Focal or Detail
+        // 1. 沿 superview 链找类名含 Focal / Detail 的祖先视图。
+        //    用 class_getName + strcasestr，避免每层都分配一个 NSString。
         UIView *temp = view;
         while (temp) {
-            NSString *className = NSStringFromClass([temp class]);
-            if ([className rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-                [className rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            if (WDDClassNameContains(object_getClass(temp), "Focal") ||
+                WDDClassNameContains(object_getClass(temp), "Detail")) {
                 return YES;
             }
             temp = temp.superview;
@@ -258,13 +291,7 @@ BOOL WDDIsFocalContext(UIView *view) {
         }
     }
     
-    // 3. Thread local flag set during layout state generation
-    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
-    if ([threadDict[@"WDDIsFocalLayout"] boolValue]) {
-        return YES;
-    }
-    
-    // 4. Global active controller fallback (Thread-safe reading of cached boolean)
+    // 3. Global active controller fallback (Thread-safe reading of cached boolean)
     return WDDActiveViewControllerIsDetail;
 }
 

@@ -208,6 +208,9 @@
 - (NSString *)fullName {
     return [WDDManager hideAuthorName] ? @"" : %orig;
 }
+- (long long)identityType {
+    return [WDDManager hideBlueVerified] ? 0 : %orig;
+}
 - (BOOL)isVerified {
     return [WDDManager hideBlueVerified] ? NO : %orig;
 }
@@ -228,9 +231,18 @@
 }
 %end
 
+%hook TFNTwitterAccount
+- (long long)identityType {
+    return [WDDManager hideBlueVerified] ? 0 : %orig;
+}
+%end
+
 %hook T1StandardUserViewModel
 - (NSString *)fullName {
     return [WDDManager hideAuthorName] ? @"" : %orig;
+}
+- (long long)identityType {
+    return [WDDManager hideBlueVerified] ? 0 : %orig;
 }
 - (BOOL)verified {
     return [WDDManager hideBlueVerified] ? NO : %orig;
@@ -276,6 +288,29 @@
 %hook T1StandardStatusAffiliateBadgeViewAdapter
 - (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
     if ([WDDManager hideAccountLabels]) return NO;
+    return %orig;
+}
+%end
+
+static BOOL WDDIsVerificationIdentity(BOOL verified, BOOL blueVerified, long long identityType) {
+    return verified || blueVerified || identityType != 0;
+}
+
+%hook TUIUserBadge
++ (id)badgeFromInfo:(id)info tweetFromUserID:(id)userID account:(id)account {
+    if ([WDDManager hideBlueVerified]) return nil;
+    return %orig;
+}
+%end
+
+%hook TUIUserBadger
+- (id)badgeForUserVerified:(BOOL)verified isBlueVerified:(BOOL)blueVerified identityType:(long long)identityType protectedUser:(BOOL)protectedUser usernameless:(BOOL)usernameless translatorType:(long long)translatorType highlightedDesignatorInfo:(id)highlightedDesignatorInfo {
+    if ([WDDManager hideBlueVerified] && WDDIsVerificationIdentity(verified, blueVerified, identityType)) return nil;
+    return %orig;
+}
+
+- (id)badgesForUserVerified:(BOOL)verified isBlueVerified:(BOOL)blueVerified identityType:(long long)identityType protectedUser:(BOOL)protectedUser usernameless:(BOOL)usernameless translatorType:(long long)translatorType highlightedDesignatorInfo:(id)highlightedDesignatorInfo {
+    if ([WDDManager hideBlueVerified] && WDDIsVerificationIdentity(verified, blueVerified, identityType)) return @[];
     return %orig;
 }
 %end

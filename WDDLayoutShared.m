@@ -80,6 +80,28 @@ BOOL WDDViewTreeShowsProbableSpam(UIView *view, NSInteger depth) {
     return NO;
 }
 
+static const void *WDDMediaHiddenFlagKey = &WDDMediaHiddenFlagKey;
+
+BOOL WDDApplyMediaHidden(UIView *view, BOOL hide) {
+    if (!view) return NO;
+
+    BOOL weHid = [objc_getAssociatedObject(view, WDDMediaHiddenFlagKey) boolValue];
+
+    if (hide) {
+        if (!weHid) {
+            objc_setAssociatedObject(view, WDDMediaHiddenFlagKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+        if (!view.hidden) view.hidden = YES;
+        return YES;
+    }
+
+    if (weHid) {
+        objc_setAssociatedObject(view, WDDMediaHiddenFlagKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (view.hidden) view.hidden = NO;
+    }
+    return NO;
+}
+
 void makeImageViewsAspectFill(UIView *view, CGRect rect) {
     (void)rect;
     if (!view) return;

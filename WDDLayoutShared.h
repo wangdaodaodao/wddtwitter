@@ -20,3 +20,4 @@ BOOL WDDIsProbableSpamText(id text);
 void WDDSyncSpamCellContent(UIView *cell, BOOL hide);
 BOOL WDDViewTreeShowsProbableSpam(UIView *view, NSInteger depth);
 void makeImageViewsAspectFill(UIView *view, CGRect rect);
+BOOL WDDApplyMediaHidden(UIView *view, BOOL hide);

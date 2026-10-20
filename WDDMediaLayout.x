@@ -3,27 +3,34 @@
 #import "TWHeaders.h"
 #import "WDDLayoutShared.h"
 
+static UIView *WDDAdapterHostView(id adapter) {
+    if (!adapter) return nil;
+    SEL sel = NSSelectorFromString(@"hostView");
+    if ([adapter respondsToSelector:sel]) {
+        @try {
+            id host = ((id (*)(id, SEL))objc_msgSend)(adapter, sel);
+            if ([host isKindOfClass:[UIView class]]) return host;
+        } @catch (__unused NSException *e) {}
+    }
+    return nil;
+}
+
+static BOOL WDDAdapterShouldHideMedia(id adapter) {
+    return WDDShouldHideTimelineMedia(WDDAdapterHostView(adapter));
+}
+
 %hook T1StandardStatusAttachmentViewAdapter
 
 - (unsigned long long)attachmentType {
     unsigned long long origType = %orig;
-    if (origType == 2) {
-        if (WDDShouldHideTimelineMedia(nil)) {
-            return 0;
-        }
+    if (origType == 2 && WDDAdapterShouldHideMedia(self)) {
+        return 0;
     }
     return origType;
 }
 
-- (id)photoVideoForwardView {
-    if (WDDShouldHideTimelineMedia(nil)) {
-        return nil;
-    }
-    return %orig;
-}
-
 - (id)autoplayPlayerContainer {
-    if (WDDShouldHideTimelineMedia(nil)) {
+    if (WDDAdapterShouldHideMedia(self)) {
         return nil;
     }
     return %orig;
@@ -41,7 +48,7 @@
         return state;
     }
 
-    if (WDDShouldHideTimelineMedia(nil)) {
+    if (WDDAdapterShouldHideMedia(self)) {
         @try { [state setValue:@(0) forKey:@"attachmentType"]; } @catch (__unused NSException *e) {}
 
         if ([state respondsToSelector:NSSelectorFromString(@"setSize:")]) {
@@ -89,7 +96,7 @@
 }
 
 - (CGSize)_t1_verticalPhotoSizeForAspectRatio:(double)aspectRatio width:(double)width {
-    if (WDDShouldHideTimelineMedia(nil)) {
+    if (WDDAdapterShouldHideMedia(self)) {
         return CGSizeZero;
     }
     if (![WDDManager enableSingleImageSizing]) {
@@ -110,7 +117,7 @@
 }
 
 - (CGSize)_t1_photoVideoForwardViewSizeForViewModel:(id)viewModel layoutMetrics:(id)layoutMetrics width:(double)width attachmentType:(unsigned long long)type {
-    if (WDDShouldHideTimelineMedia(nil)) {
+    if (WDDAdapterShouldHideMedia(self)) {
         return CGSizeZero;
     }
     if (![WDDManager enableSingleImageSizing]) {
@@ -131,35 +138,36 @@
 }
 
 - (id)_t1_unifiedCardViewLayoutStateForViewModel:(id)viewModel unifiedCard:(id)unifiedCard shouldHideFooter:(BOOL)shouldHideFooter layoutMetrics:(id)layoutMetrics width:(double)width {
-    if (WDDShouldHideTimelineMedia(nil)) {
+    BOOL hideSource = [WDDManager hideSourceAttribution];
+    if (hideSource) {
+        shouldHideFooter = YES;
+    }
+
+    id result = nil;
+    if (WDDAdapterShouldHideMedia(self)) {
         BOOL previous = g_wddThreadCollapseUnifiedCard;
         g_wddThreadCollapseUnifiedCard = YES;
-        id result = %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
+        result = %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
         g_wddThreadCollapseUnifiedCard = previous;
-        return result;
+    } else {
+        result = %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
     }
-    return %orig(viewModel, unifiedCard, shouldHideFooter, layoutMetrics, width);
-}
 
-%end
+    if (hideSource && result) {
+        CGSize cardSize = CGSizeZero;
+        @try {
+            NSValue *value = [result valueForKey:@"size"];
+            if ([value isKindOfClass:[NSValue class]]) cardSize = [value CGSizeValue];
+        } @catch (__unused NSException *e) {}
 
-@interface T1StandardStatusAttachmentViewLayoutState : NSObject
-@end
+        if (cardSize.height > 0.0 && cardSize.height <= 44.0) {
+            @try {
+                [result setValue:[NSValue valueWithCGSize:CGSizeZero] forKey:@"size"];
+            } @catch (__unused NSException *e) {}
+        }
+    }
 
-%hook T1StandardStatusAttachmentViewLayoutState
-
-- (unsigned long long)attachmentType {
-    unsigned long long type = %orig;
-    if (type == 0) return 0;
-    if (!WDDShouldHideTimelineMedia(nil)) return type;
-
-    id cardState = nil, unifiedCardState = nil, quotedState = nil;
-    @try { cardState = [self valueForKey:@"cardViewLayoutState"]; } @catch (__unused NSException *e) {}
-    @try { unifiedCardState = [self valueForKey:@"unifiedCardViewLayoutState"]; } @catch (__unused NSException *e) {}
-    @try { quotedState = [self valueForKey:@"quotedStandardStatusViewLayoutState"]; } @catch (__unused NSException *e) {}
-    if (cardState || unifiedCardState || quotedState) return type;
-
-    return 0;
+    return result;
 }
 
 %end

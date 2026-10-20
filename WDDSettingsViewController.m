@@ -25,7 +25,7 @@
             @[
                 @{ @"key": @"hide_author_name", @"title": @"隐藏作者名字", @"subtitle": @"在推文中隐藏作者显示的姓名", @"icon": @"person.text.rectangle", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"hide_avatar", @"title": @"隐藏头像", @"subtitle": @"在推文中隐藏作者的头像（加宽内容）", @"icon": @"person.crop.circle.badge.xmark", @"default": @NO, @"type": @"toggle" },
-                @{ @"key": @"hide_blue_verified", @"title": @"隐藏蓝V标识", @"subtitle": @"隐藏所有账号的蓝色认证标识", @"icon": @"checkmark.seal", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"hide_blue_verified", @"title": @"隐藏认证标识", @"subtitle": @"隐藏账号的蓝V、金V、灰V 认证图标", @"icon": @"checkmark.seal", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_account_labels", @"title": @"隐藏账号标签", @"subtitle": @"隐藏“戏仿/自动化/游戏/类别”等账号标签", @"icon": @"tag", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_disclosure_labels", @"title": @"隐藏推文底部标签", @"subtitle": @"隐藏推文底部的“付费合作/推广/AI生成”等标签", @"icon": @"text.badge.xmark", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_timeline_view_count", @"title": @"隐藏浏览量数值", @"subtitle": @"隐藏时间线及推文详情内的浏览量（流量数值）", @"icon": @"chart.bar.xaxis", @"default": @NO, @"type": @"toggle" },
@@ -33,7 +33,8 @@
                 @{ @"key": @"wdd_hide_probable_spam", @"title": @"屏蔽“可能的垃圾信息”", @"subtitle": @"隐藏会话中“显示可能的垃圾信息”提示行", @"icon": @"exclamationmark.bubble", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_reply_to_indicator", @"title": @"屏蔽回复指示", @"subtitle": @"隐藏回复推文中的‘回复 @用户名’提示", @"icon": @"arrowshape.turn.up.left", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_grok_buttons", @"title": @"隐藏Grok相关按钮", @"subtitle": @"隐藏贴文回复中Grok底部的编辑图片、下载Grok等按钮", @"icon": @"sparkles", @"default": @NO, @"type": @"toggle" },
-                @{ @"key": @"wdd_disable_long_press_menu", @"title": @"禁用长按菜单", @"subtitle": @"禁止在时间线长按推文时弹出菜单或预览", @"icon": @"hand.tap", @"default": @NO, @"type": @"toggle" }
+                @{ @"key": @"wdd_disable_long_press_menu", @"title": @"禁用长按菜单", @"subtitle": @"禁止在时间线长按推文时弹出菜单或预览", @"icon": @"hand.tap", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_source_attribution", @"title": @"隐藏来源标签", @"subtitle": @"隐藏推文正文下方的“来自 域名”来源行", @"icon": @"globe", @"default": @NO, @"type": @"toggle" }
             ],
             @[
                 @{ @"key": @"wdd_enable_single_image_sizing", @"title": @"固定单图大小", @"subtitle": @"固定首页单张图片为 16:9 比例并居中裁剪", @"icon": @"arrow.up.left.and.arrow.down.right", @"default": @NO, @"type": @"toggle" },

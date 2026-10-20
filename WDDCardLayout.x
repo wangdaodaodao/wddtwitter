@@ -128,10 +128,11 @@
 
 - (void)setFrame:(CGRect)frame {
     if (WDDShouldHideTimelineMedia(self)) {
+        WDDApplyMediaHidden(self, YES);
         %orig(CGRectZero);
-        self.hidden = YES;
         return;
     }
+    WDDApplyMediaHidden(self, NO);
     %orig(frame);
 }
 
@@ -152,16 +153,15 @@
 
 - (void)layoutSubviews {
     if (WDDShouldHideTimelineMedia(self)) {
-        self.hidden = YES;
+        WDDApplyMediaHidden(self, YES);
 
         if (!CGRectIsEmpty(self.frame)) {
             self.frame = CGRectZero;
         }
-        for (UIView *subview in self.subviews) {
-            subview.hidden = YES;
-        }
         return;
     }
+
+    WDDApplyMediaHidden(self, NO);
     %orig;
 
     if (![WDDManager enableSingleImageSizing]) {
@@ -202,31 +202,29 @@
 
 %hook T1UnifiedCardImageView
 - (void)setImage:(UIImage *)image {
-    if (WDDShouldHideTimelineMedia(self)) {
-        %orig(nil);
-        self.hidden = YES;
-        return;
-    }
+    WDDApplyMediaHidden(self, WDDShouldHideTimelineMedia(self));
     %orig(image);
 }
 
 - (void)setFrame:(CGRect)frame {
     if (WDDShouldHideTimelineMedia(self)) {
+        WDDApplyMediaHidden(self, YES);
         %orig(CGRectZero);
-        self.hidden = YES;
         return;
     }
+    WDDApplyMediaHidden(self, NO);
     %orig(frame);
 }
 
 - (void)layoutSubviews {
     if (WDDShouldHideTimelineMedia(self)) {
-        self.hidden = YES;
+        WDDApplyMediaHidden(self, YES);
         if (!CGRectIsEmpty(self.frame)) {
             self.frame = CGRectZero;
         }
         return;
     }
+    WDDApplyMediaHidden(self, NO);
     %orig;
 }
 
@@ -247,31 +245,29 @@
 
 %hook T1CardImageView
 - (void)setImage:(UIImage *)image {
-    if (WDDShouldHideTimelineMedia(self)) {
-        %orig(nil);
-        self.hidden = YES;
-        return;
-    }
+    WDDApplyMediaHidden(self, WDDShouldHideTimelineMedia(self));
     %orig(image);
 }
 
 - (void)setFrame:(CGRect)frame {
     if (WDDShouldHideTimelineMedia(self)) {
+        WDDApplyMediaHidden(self, YES);
         %orig(CGRectZero);
-        self.hidden = YES;
         return;
     }
+    WDDApplyMediaHidden(self, NO);
     %orig(frame);
 }
 
 - (void)layoutSubviews {
     if (WDDShouldHideTimelineMedia(self)) {
-        self.hidden = YES;
+        WDDApplyMediaHidden(self, YES);
         if (!CGRectIsEmpty(self.frame)) {
             self.frame = CGRectZero;
         }
         return;
     }
+    WDDApplyMediaHidden(self, NO);
     %orig;
 }
 
@@ -289,6 +285,22 @@
     return %orig;
 }
 %end
+
+static void WDDUpdateActiveDetailFlag(UIViewController *vc) {
+    if (!vc) return;
+    if (WDDIsMediaViewerController(vc)) return;
+
+    if (WDDIsCurrentActiveContextDetail()) {
+        WDDActiveViewControllerIsDetail = YES;
+        return;
+    }
+
+    if (vc.presentingViewController && !vc.isBeingDismissed) {
+        return;
+    }
+
+    WDDActiveViewControllerIsDetail = NO;
+}
 
 %hook UIViewController
 - (void)viewWillAppear:(BOOL)animated {
@@ -309,10 +321,7 @@
     }
 
     WDDActiveViewController = self;
-
-    if (!WDDIsMediaViewerController(self)) {
-        WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
-    }
+    WDDUpdateActiveDetailFlag(self);
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -333,14 +342,16 @@
     }
 
     WDDActiveViewController = self;
-    if (!WDDIsMediaViewerController(self)) {
-        WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
-    }
+    WDDUpdateActiveDetailFlag(self);
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     %orig;
     WDDInvalidateMediaViewerCache();
+
+    if (WDDIsMediaViewerController(self) && WDDActiveViewController == self) {
+        WDDActiveViewController = nil;
+    }
 }
 %end
 

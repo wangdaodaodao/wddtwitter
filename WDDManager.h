@@ -30,5 +30,6 @@
 + (BOOL)hideGrokButtons;
 + (BOOL)hideTimelineImages;
 + (BOOL)hideAllMedia;
++ (BOOL)hideSourceAttribution;
 + (NSInteger)filterConfigVersion;
 @end

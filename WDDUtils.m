@@ -354,3 +354,7 @@ BOOL WDDShouldHideTimelineMedia(UIView *view) {
     if (WDDIsFocalContext(view)) return NO;
     return YES;
 }
+
+BOOL WDDShouldHideTranslation(void) {
+    return [WDDManager hideTranslationNotice];
+}

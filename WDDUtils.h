@@ -16,3 +16,5 @@ BOOL WDDIsFocalStatusView(UIView *view);
 BOOL WDDShouldHideTimelineMedia(UIView *view);
 
 BOOL WDDIsInFocalLayout(void);
+
+BOOL WDDShouldHideTranslation(void);

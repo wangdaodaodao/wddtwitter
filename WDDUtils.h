@@ -11,6 +11,8 @@ BOOL WDDIsFocalContext(UIView *view);
 BOOL WDDIsMediaViewerContext(UIView *view);
 BOOL WDDIsMediaViewerController(UIViewController *vc);
 
+BOOL WDDIsFocalStatusView(UIView *view);
+
 BOOL WDDShouldHideTimelineMedia(UIView *view);
 
 BOOL WDDIsInFocalLayout(void);

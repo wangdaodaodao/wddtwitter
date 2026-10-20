@@ -5,8 +5,8 @@
 #import <objc/message.h>
 #import <string.h>
 
-static BOOL g_isCalculatingQuotedLayout = NO;
-static BOOL g_hasAdjustedQuotedWidth = NO;
+static _Thread_local BOOL g_isCalculatingQuotedLayout = NO;
+static _Thread_local BOOL g_hasAdjustedQuotedWidth = NO;
 
 static BOOL WDDShouldFixSingleImageSize(id viewModel);
 
@@ -517,12 +517,12 @@ static void adjustStatusViewLayout(UIView *statusView) {
 %end
 
 static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
+    (void)rect;
     if (!view) return;
     if ([view isKindOfClass:[UIImageView class]]) {
-        if (!CGRectEqualToRect(view.frame, rect)) {
-            view.frame = rect;
+        if (!view.clipsToBounds) {
+            view.clipsToBounds = YES;
         }
-        view.clipsToBounds = YES;
         if (view.contentMode != UIViewContentModeScaleAspectFill) {
             view.contentMode = UIViewContentModeScaleAspectFill;
         }
@@ -916,25 +916,26 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
             if (WDDIsMediaViewerContext(self)) {
                 return;
             }
-            self.clipsToBounds = YES;
-            CGRect fillBounds = self.bounds;
+            if (!self.clipsToBounds) {
+                self.clipsToBounds = YES;
+            }
 
             if ([self respondsToSelector:@selector(mediaContainerView)]) {
                 UIView *container = [self mediaContainerView];
                 if (container) {
-                    container.frame = fillBounds;
-                    container.clipsToBounds = YES;
-                    container.contentMode = UIViewContentModeScaleAspectFill;
-                    makeImageViewsAspectFill(container, fillBounds);
+                    if (!container.clipsToBounds) {
+                        container.clipsToBounds = YES;
+                    }
+                    makeImageViewsAspectFill(container, container.bounds);
                 }
             }
             if ([self respondsToSelector:@selector(inlineMediaView)]) {
                 UIView *mediaView = [self inlineMediaView];
                 if (mediaView) {
-                    mediaView.frame = fillBounds;
-                    mediaView.clipsToBounds = YES;
-                    mediaView.contentMode = UIViewContentModeScaleAspectFill;
-                    makeImageViewsAspectFill(mediaView, fillBounds);
+                    if (!mediaView.clipsToBounds) {
+                        mediaView.clipsToBounds = YES;
+                    }
+                    makeImageViewsAspectFill(mediaView, mediaView.bounds);
                 }
             }
         }

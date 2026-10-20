@@ -313,6 +313,8 @@ BOOL WDDIsMediaViewerController(UIViewController *vc) {
 }
 
 BOOL WDDIsMediaViewerContext(UIView *view) {
+    if (WDDIsMediaViewerController(WDDActiveViewController)) return YES;
+
     if (view) {
         UIView *temp = view;
         while (temp) {
@@ -329,13 +331,22 @@ BOOL WDDIsMediaViewerContext(UIView *view) {
         }
     }
 
-    return WDDIsMediaViewerController(WDDActiveViewController);
+    return NO;
+}
+
+BOOL WDDIsFocalStatusView(UIView *view) {
+    UIView *temp = view;
+    while (temp) {
+        if (WDDClassNameContains(object_getClass(temp), "Focal")) return YES;
+        temp = temp.superview;
+    }
+    return NO;
 }
 
 BOOL WDDShouldHideTimelineMedia(UIView *view) {
     if (![WDDManager hideTimelineImages]) return NO;
-    if (WDDIsFocalContext(view)) return NO;
     if (WDDIsInFocalLayout()) return NO;
+    if (view && WDDIsFocalStatusView(view)) return NO;
     if (WDDIsMediaViewerContext(view)) return NO;
     return YES;
 }

@@ -344,9 +344,13 @@ BOOL WDDIsFocalStatusView(UIView *view) {
 }
 
 BOOL WDDShouldHideTimelineMedia(UIView *view) {
-    if (![WDDManager hideTimelineImages]) return NO;
+    BOOL hideAll = [WDDManager hideAllMedia];
+    BOOL hideTimeline = [WDDManager hideTimelineImages];
+    if (!hideAll && !hideTimeline) return NO;
+    if (WDDIsMediaViewerContext(view)) return NO;
+    if (hideAll) return YES;
     if (WDDIsInFocalLayout()) return NO;
     if (view && WDDIsFocalStatusView(view)) return NO;
-    if (WDDIsMediaViewerContext(view)) return NO;
+    if (WDDIsFocalContext(view)) return NO;
     return YES;
 }

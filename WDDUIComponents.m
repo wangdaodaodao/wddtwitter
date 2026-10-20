@@ -5,8 +5,7 @@
 
 #import "WDDUIComponents.h"
 
-static UIColor *WDDCurrentAccentColor(void) {
-    Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
+static UIColor *WDDCurrentAccentColor(void) {    Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
     if (!TAEColorSettingsCls) {
         return [UIColor systemBlueColor];
     }
@@ -39,6 +38,41 @@ static UIColor *WDDCurrentAccentColor(void) {
     return [UIColor systemBlueColor];
 }
 
+static UIColor *WDDThemeSecondaryColor(void) {
+    Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
+    if (!TAEColorSettingsCls) {
+        return [UIColor secondaryLabelColor];
+    }
+    id settings = [TAEColorSettingsCls performSelector:@selector(sharedSettings)];
+    id current = [settings performSelector:@selector(currentColorPalette)];
+    id palette = [current performSelector:@selector(colorPalette)];
+    UIColor *color = [palette performSelector:@selector(tabBarItemColor)];
+    return color ?: [UIColor secondaryLabelColor];
+}
+
+static UIImage *WDDIconImage(NSString *iconName, CGFloat pointSize) {
+    if (iconName.length == 0) return nil;
+    UIImageSymbolConfiguration *cfg = [UIImageSymbolConfiguration configurationWithPointSize:pointSize
+                                                                                     weight:UIImageSymbolWeightRegular];
+    UIImage *image = [UIImage systemImageNamed:iconName withConfiguration:cfg];
+    return [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+}
+
+static const CGFloat WDDIconSize = 24.0;
+static const CGFloat WDDCellLeading = 16.0;
+static const CGFloat WDDIconTextGap = 10.0;
+static const CGFloat WDDCellTrailing = 16.0;
+
+static UIFont *WDDTitleFont(void) {
+    UIFont *base = [UIFont systemFontOfSize:17 weight:UIFontWeightRegular];
+    return [[UIFontMetrics metricsForTextStyle:UIFontTextStyleBody] scaledFontForFont:base];
+}
+
+static UIFont *WDDSubtitleFont(void) {
+    UIFont *base = [UIFont systemFontOfSize:14 weight:UIFontWeightRegular];
+    return [[UIFontMetrics metricsForTextStyle:UIFontTextStyleSubheadline] scaledFontForFont:base];
+}
+
 @implementation ModernSettingsTableViewCell
 
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
@@ -59,14 +93,13 @@ static UIColor *WDDCurrentAccentColor(void) {
 
     self.titleLabel = [[UILabel alloc] init];
     self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-    self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
+    self.titleLabel.font = WDDTitleFont();
     self.titleLabel.textColor = [UIColor labelColor];
     [self.contentView addSubview:self.titleLabel];
 
     self.subtitleLabel = [[UILabel alloc] init];
     self.subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    self.subtitleLabel.font = [fontGroup performSelector:@selector(subtext2Font)];
+    self.subtitleLabel.font = WDDSubtitleFont();
     [self updateSubtitleColor];
     self.subtitleLabel.numberOfLines = 0;
     [self.contentView addSubview:self.subtitleLabel];
@@ -82,24 +115,24 @@ static UIColor *WDDCurrentAccentColor(void) {
 
 - (void)setupConstraints {
     [NSLayoutConstraint activateConstraints:@[
-        [self.iconImageView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:20],
+        [self.iconImageView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:WDDCellLeading],
         [self.iconImageView.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
-        [self.iconImageView.widthAnchor constraintEqualToConstant:20],
-        [self.iconImageView.heightAnchor constraintEqualToConstant:20],
+        [self.iconImageView.widthAnchor constraintEqualToConstant:WDDIconSize],
+        [self.iconImageView.heightAnchor constraintEqualToConstant:WDDIconSize],
 
-        [self.titleLabel.leadingAnchor constraintEqualToAnchor:self.iconImageView.trailingAnchor constant:16],
-        [self.titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:16],
-        [self.titleLabel.trailingAnchor constraintEqualToAnchor:self.chevronImageView.leadingAnchor constant:-16],
+        [self.titleLabel.leadingAnchor constraintEqualToAnchor:self.iconImageView.trailingAnchor constant:WDDIconTextGap],
+        [self.titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:14],
+        [self.titleLabel.trailingAnchor constraintEqualToAnchor:self.chevronImageView.leadingAnchor constant:-12],
 
         [self.subtitleLabel.leadingAnchor constraintEqualToAnchor:self.titleLabel.leadingAnchor],
-        [self.subtitleLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:2],
+        [self.subtitleLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:3],
         [self.subtitleLabel.trailingAnchor constraintEqualToAnchor:self.titleLabel.trailingAnchor],
-        [self.subtitleLabel.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-16],
+        [self.subtitleLabel.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-14],
 
-        [self.chevronImageView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-20],
+        [self.chevronImageView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-WDDCellTrailing],
         [self.chevronImageView.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
-        [self.chevronImageView.widthAnchor constraintEqualToConstant:18],
-        [self.chevronImageView.heightAnchor constraintEqualToConstant:18]
+        [self.chevronImageView.widthAnchor constraintEqualToConstant:14],
+        [self.chevronImageView.heightAnchor constraintEqualToConstant:14]
     ]];
 }
 
@@ -112,20 +145,16 @@ static UIColor *WDDCurrentAccentColor(void) {
 
 - (void)updateIconColors {
     NSString *iconName = objc_getAssociatedObject(self, @selector(iconName));
-    if (iconName) {
-        Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
-        id settings = [TAEColorSettingsCls sharedSettings];
-        id currentPalette = [settings currentColorPalette];
-        id colorPalette = [currentPalette colorPalette];
-        UIColor *iconColor = [colorPalette performSelector:@selector(tabBarItemColor)];
-        self.iconImageView.image = [UIImage tfn_vectorImageNamed:iconName fitsSize:CGSizeMake(20, 20) fillColor:iconColor];
+    UIColor *secondary = WDDThemeSecondaryColor();
+    self.iconImageView.tintColor = secondary;
+    if (iconName.length > 0) {
+        UIImage *image = WDDIconImage(iconName, 18);
+        if (!image) {
+            image = [UIImage tfn_vectorImageNamed:iconName fitsSize:CGSizeMake(WDDIconSize, WDDIconSize) fillColor:secondary];
+        }
+        self.iconImageView.image = image;
     }
-    Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
-    id settings = [TAEColorSettingsCls sharedSettings];
-    id currentPalette = [settings currentColorPalette];
-    id colorPalette = [currentPalette colorPalette];
-    UIColor *chevronColor = [colorPalette performSelector:@selector(tabBarItemColor)];
-    self.chevronImageView.image = [UIImage tfn_vectorImageNamed:@"chevron_right" fitsSize:CGSizeMake(18, 18) fillColor:chevronColor];
+    self.chevronImageView.image = [UIImage tfn_vectorImageNamed:@"chevron_right" fitsSize:CGSizeMake(14, 14) fillColor:secondary];
 }
 
 - (void)updateSubtitleColor {
@@ -143,9 +172,8 @@ static UIColor *WDDCurrentAccentColor(void) {
     [self updateIconColors];
     [self updateSubtitleColor];
     if (previousTraitCollection.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory) {
-        id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-        self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
-        self.subtitleLabel.font = [fontGroup performSelector:@selector(subtext2Font)];
+        self.titleLabel.font = WDDTitleFont();
+        self.subtitleLabel.font = WDDSubtitleFont();
     }
 }
 
@@ -165,8 +193,7 @@ static UIColor *WDDCurrentAccentColor(void) {
 - (void)setupViews {
     self.titleLabel = [[UILabel alloc] init];
     self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-    self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
+    self.titleLabel.font = WDDTitleFont();
     self.titleLabel.textColor = [UIColor labelColor];
     [self.contentView addSubview:self.titleLabel];
 
@@ -213,8 +240,7 @@ static UIColor *WDDCurrentAccentColor(void) {
     self.backgroundColor = [BHDimPalette currentBackgroundColor];
     [self updateChevronColor];
     if (previousTraitCollection.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory) {
-        id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-        self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
+        self.titleLabel.font = WDDTitleFont();
     }
 }
 
@@ -232,16 +258,21 @@ static UIColor *WDDCurrentAccentColor(void) {
 }
 
 - (void)setupViews {
+    self.iconImageView = [[UIImageView alloc] init];
+    self.iconImageView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.iconImageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.iconImageView.tintColor = WDDThemeSecondaryColor();
+    [self.contentView addSubview:self.iconImageView];
+
     self.titleLabel = [[UILabel alloc] init];
     self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-    self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
+    self.titleLabel.font = WDDTitleFont();
     self.titleLabel.textColor = [UIColor labelColor];
     [self.contentView addSubview:self.titleLabel];
 
     self.subtitleLabel = [[UILabel alloc] init];
     self.subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    self.subtitleLabel.font = [fontGroup performSelector:@selector(subtext2Font)];
+    self.subtitleLabel.font = WDDSubtitleFont();
     self.subtitleLabel.textAlignment = NSTextAlignmentRight;
     [self updateSubtitleColor];
     [self.contentView addSubview:self.subtitleLabel];
@@ -258,19 +289,24 @@ static UIColor *WDDCurrentAccentColor(void) {
 
 - (void)setupConstraints {
     [NSLayoutConstraint activateConstraints:@[
-        [self.titleLabel.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:20],
-        [self.titleLabel.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
-        [self.titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:16],
-        [self.titleLabel.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-16],
+        [self.iconImageView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:WDDCellLeading],
+        [self.iconImageView.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
+        [self.iconImageView.widthAnchor constraintEqualToConstant:WDDIconSize],
+        [self.iconImageView.heightAnchor constraintEqualToConstant:WDDIconSize],
 
-        [self.subtitleLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.titleLabel.trailingAnchor constant:16],
+        [self.titleLabel.leadingAnchor constraintEqualToAnchor:self.iconImageView.trailingAnchor constant:WDDIconTextGap],
+        [self.titleLabel.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
+        [self.titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:14],
+        [self.titleLabel.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-14],
+
+        [self.subtitleLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.titleLabel.trailingAnchor constant:12],
         [self.subtitleLabel.trailingAnchor constraintEqualToAnchor:self.chevronImageView.leadingAnchor constant:-8],
         [self.subtitleLabel.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
 
-        [self.chevronImageView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-20],
+        [self.chevronImageView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-WDDCellTrailing],
         [self.chevronImageView.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
-        [self.chevronImageView.widthAnchor constraintEqualToConstant:18],
-        [self.chevronImageView.heightAnchor constraintEqualToConstant:18]
+        [self.chevronImageView.widthAnchor constraintEqualToConstant:14],
+        [self.chevronImageView.heightAnchor constraintEqualToConstant:14]
     ]];
     [self.titleLabel setContentHuggingPriority:UILayoutPriorityDefaultHigh forAxis:UILayoutConstraintAxisHorizontal];
     [self.subtitleLabel setContentHuggingPriority:UILayoutPriorityDefaultLow forAxis:UILayoutConstraintAxisHorizontal];
@@ -278,8 +314,14 @@ static UIColor *WDDCurrentAccentColor(void) {
 }
 
 - (void)configureWithTitle:(NSString *)title subtitle:(NSString *)subtitle {
+    [self configureWithTitle:title subtitle:subtitle iconName:nil];
+}
+
+- (void)configureWithTitle:(NSString *)title subtitle:(NSString *)subtitle iconName:(NSString *)iconName {
     self.titleLabel.text = title;
     self.subtitleLabel.text = subtitle;
+    self.iconImageView.tintColor = WDDThemeSecondaryColor();
+    self.iconImageView.image = WDDIconImage(iconName, 18);
 }
 
 - (void)updateChevronColor {
@@ -306,9 +348,8 @@ static UIColor *WDDCurrentAccentColor(void) {
     [self updateChevronColor];
     [self updateSubtitleColor];
     if (previousTraitCollection.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory) {
-        id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-        self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
-        self.subtitleLabel.font = [fontGroup performSelector:@selector(subtext2Font)];
+        self.titleLabel.font = WDDTitleFont();
+        self.subtitleLabel.font = WDDSubtitleFont();
     }
 }
 
@@ -321,6 +362,13 @@ static UIColor *WDDCurrentAccentColor(void) {
     if (self) {
         self.selectionStyle = UITableViewCellSelectionStyleNone;
         self.backgroundColor = [BHDimPalette currentBackgroundColor];
+
+        self.iconImageView = [UIImageView new];
+        self.iconImageView.translatesAutoresizingMaskIntoConstraints = NO;
+        self.iconImageView.contentMode = UIViewContentModeScaleAspectFit;
+        self.iconImageView.tintColor = WDDThemeSecondaryColor();
+        [self.contentView addSubview:self.iconImageView];
+
         self.titleLabel = [UILabel new];
         self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
         [self.contentView addSubview:self.titleLabel];
@@ -333,14 +381,21 @@ static UIColor *WDDCurrentAccentColor(void) {
         [self.contentView addSubview:self.toggleSwitch];
         [self applyTheme];
         [NSLayoutConstraint activateConstraints:@[
-            [self.toggleSwitch.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-20],
-            [self.titleLabel.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:20],
-            [self.titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:14],
-            [self.titleLabel.trailingAnchor constraintEqualToAnchor:self.toggleSwitch.leadingAnchor constant:-16],
+            [self.toggleSwitch.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-WDDCellTrailing],
             [self.toggleSwitch.centerYAnchor constraintEqualToAnchor:self.titleLabel.centerYAnchor],
+
+            [self.iconImageView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:WDDCellLeading],
+            [self.iconImageView.centerYAnchor constraintEqualToAnchor:self.titleLabel.centerYAnchor],
+            [self.iconImageView.widthAnchor constraintEqualToConstant:WDDIconSize],
+            [self.iconImageView.heightAnchor constraintEqualToConstant:WDDIconSize],
+
+            [self.titleLabel.leadingAnchor constraintEqualToAnchor:self.iconImageView.trailingAnchor constant:WDDIconTextGap],
+            [self.titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:14],
+            [self.titleLabel.trailingAnchor constraintEqualToAnchor:self.toggleSwitch.leadingAnchor constant:-12],
+
             [self.subtitleLabel.leadingAnchor constraintEqualToAnchor:self.titleLabel.leadingAnchor],
             [self.subtitleLabel.trailingAnchor constraintEqualToAnchor:self.titleLabel.trailingAnchor],
-            [self.subtitleLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:4],
+            [self.subtitleLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:3],
             [self.subtitleLabel.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-14]
         ]];
     }
@@ -348,8 +403,14 @@ static UIColor *WDDCurrentAccentColor(void) {
 }
 
 - (void)configureWithTitle:(NSString *)title subtitle:(NSString *)subtitle {
+    [self configureWithTitle:title subtitle:subtitle iconName:nil];
+}
+
+- (void)configureWithTitle:(NSString *)title subtitle:(NSString *)subtitle iconName:(NSString *)iconName {
     self.titleLabel.text = title;
     self.subtitleLabel.text = subtitle;
+    self.iconImageView.tintColor = WDDThemeSecondaryColor();
+    self.iconImageView.image = WDDIconImage(iconName, 18);
 }
 
 - (void)addTarget:(id)target action:(SEL)action forControlEvents:(UIControlEvents)events {
@@ -357,14 +418,14 @@ static UIColor *WDDCurrentAccentColor(void) {
 }
 
 - (void)applyTheme {
-    id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-    self.titleLabel.font = [fontGroup performSelector:@selector(bodyBoldFont)];
-    self.subtitleLabel.font = [fontGroup performSelector:@selector(subtext2Font)];
+    self.titleLabel.font = WDDTitleFont();
+    self.subtitleLabel.font = WDDSubtitleFont();
     Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
     id settings = [TAEColorSettingsCls sharedSettings];
     id colorPalette = [[settings currentColorPalette] colorPalette];
     self.titleLabel.textColor = [colorPalette performSelector:@selector(textColor)];
     self.subtitleLabel.textColor = [colorPalette performSelector:@selector(tabBarItemColor)];
+    self.iconImageView.tintColor = WDDThemeSecondaryColor();
     self.toggleSwitch.onTintColor = WDDCurrentAccentColor();
 }
 

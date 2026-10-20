@@ -47,10 +47,12 @@ static NSString *_lastRegexes;
 // 只在配置真正变化时刷新。语义与 boolForKey: 完全一致。
 // ---------------------------------------------------------------
 static BOOL _hotCacheHideTimelineImages = NO;
+static BOOL _hotCacheHideAllMedia = NO;
 static BOOL _hotCacheEnableSingleImageSizing = NO;
 
 static void WDDRefreshHotCache(void) {
     _hotCacheHideTimelineImages = [_prefsCache[@"wdd_hide_timeline_images"] boolValue];
+    _hotCacheHideAllMedia = [_prefsCache[@"wdd_hide_all_media"] boolValue];
     _hotCacheEnableSingleImageSizing = [_prefsCache[@"wdd_enable_single_image_sizing"] boolValue];
 }
 
@@ -75,6 +77,7 @@ static void WDDEnsurePrefs(void) {
             @"wdd_hide_account_labels", @"wdd_hide_disclosure_labels",
             @"wdd_hide_timeline_view_count", @"wdd_disable_long_press_menu",
             @"wdd_hide_timeline_images",
+            @"wdd_hide_all_media",
             @"enable_reply_filter", @"enable_emoji_filter", @"enable_regex_filter"
         ];
         NSArray *stringKeys = @[@"reply_keywords", @"reply_regexes"];
@@ -271,6 +274,11 @@ static void WDDSavePrefs(void) {
     // 热点路径：直接读缓存，不再做字符串键字典查找
     WDDEnsurePrefs();
     return _hotCacheHideTimelineImages;
+}
+
++ (BOOL)hideAllMedia {
+    WDDEnsurePrefs();
+    return _hotCacheHideAllMedia;
 }
 
 @end

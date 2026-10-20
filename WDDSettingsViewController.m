@@ -11,7 +11,8 @@
 
 @interface WDDSettingsViewController () <UITableViewDataSource, UITableViewDelegate>
 @property (nonatomic, strong) UITableView *tableView;
-@property (nonatomic, strong) NSArray<NSDictionary *> *settings;
+@property (nonatomic, strong) NSArray<NSArray<NSDictionary *> *> *settings;
+@property (nonatomic, strong) NSArray<NSString *> *sectionTitles;
 @property (nonatomic, strong) NSArray<NSDictionary *> *authors;
 @end
 
@@ -21,24 +22,33 @@
     if ((self = [super init])) {
         self.account = account;
         self.settings = @[
-            @{ @"key": @"hide_author_name", @"title": @"隐藏作者名字", @"subtitle": @"在推文中隐藏作者显示的姓名", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"hide_avatar", @"title": @"隐藏头像", @"subtitle": @"在推文中隐藏作者的头像（加宽内容）", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"hide_blue_verified", @"title": @"隐藏蓝V标识", @"subtitle": @"隐藏所有账号的蓝色认证标识", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_translation_notice", @"title": @"屏蔽翻译提示", @"subtitle": @"隐藏推文底部的翻译来源和显示原文提示（含Grok）", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_grok_buttons", @"title": @"隐藏Grok相关按钮", @"subtitle": @"隐藏贴文回复中Grok底部的编辑图片、下载Grok等按钮", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_reply_to_indicator", @"title": @"屏蔽回复指示", @"subtitle": @"隐藏回复推文中的‘回复 @用户名’提示", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_enable_single_image_sizing", @"title": @"固定单图大小", @"subtitle": @"固定首页单张图片为 16:9 比例并居中裁剪", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_timeline_images", @"title": @"屏蔽时间线图片", @"subtitle": @"在时间线屏蔽图片以省流量，详情页内仍可查看", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_account_labels", @"title": @"隐藏账号标签", @"subtitle": @"隐藏“戏仿/自动化/游戏/类别”等账号标签", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_disclosure_labels", @"title": @"隐藏推文底部标签", @"subtitle": @"隐藏推文底部的“付费合作/推广/AI生成”等标签", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_hide_timeline_view_count", @"title": @"隐藏浏览量数值", @"subtitle": @"隐藏时间线及推文详情内的浏览量（流量数值）", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"wdd_disable_long_press_menu", @"title": @"禁用长按菜单", @"subtitle": @"禁止在时间线长按推文时弹出菜单或预览", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"enable_reply_filter", @"title": @"回复关键词屏蔽", @"subtitle": @"开启后将根据关键词隐藏回复推文", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"reply_keywords", @"title": @"设置屏蔽关键词", @"subtitle": @"点击设置（多个关键词请用中or英文逗号分隔）", @"type": @"button" },
-            @{ @"key": @"enable_emoji_filter", @"title": @"屏蔽纯表情回复", @"subtitle": @"屏蔽无中文且无英文数字的回复，或超3个emoji且无中文的回复", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"enable_regex_filter", @"title": @"回复正则屏蔽", @"subtitle": @"开启后将根据自定义正则表达式屏蔽回复", @"default": @NO, @"type": @"toggle" },
-            @{ @"key": @"reply_regexes", @"title": @"设置屏蔽正则表达式", @"subtitle": @"点击设置自定义正则（多条规则请换行分隔）", @"type": @"button" }
+            @[
+                @{ @"key": @"hide_author_name", @"title": @"隐藏作者名字", @"subtitle": @"在推文中隐藏作者显示的姓名", @"icon": @"person.text.rectangle", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"hide_avatar", @"title": @"隐藏头像", @"subtitle": @"在推文中隐藏作者的头像（加宽内容）", @"icon": @"person.crop.circle.badge.xmark", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"hide_blue_verified", @"title": @"隐藏蓝V标识", @"subtitle": @"隐藏所有账号的蓝色认证标识", @"icon": @"checkmark.seal", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_account_labels", @"title": @"隐藏账号标签", @"subtitle": @"隐藏“戏仿/自动化/游戏/类别”等账号标签", @"icon": @"tag", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_disclosure_labels", @"title": @"隐藏推文底部标签", @"subtitle": @"隐藏推文底部的“付费合作/推广/AI生成”等标签", @"icon": @"text.badge.xmark", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_timeline_view_count", @"title": @"隐藏浏览量数值", @"subtitle": @"隐藏时间线及推文详情内的浏览量（流量数值）", @"icon": @"chart.bar.xaxis", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_translation_notice", @"title": @"屏蔽翻译提示", @"subtitle": @"隐藏推文底部的翻译来源和显示原文提示（含Grok）", @"icon": @"character.bubble", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_reply_to_indicator", @"title": @"屏蔽回复指示", @"subtitle": @"隐藏回复推文中的‘回复 @用户名’提示", @"icon": @"arrowshape.turn.up.left", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_grok_buttons", @"title": @"隐藏Grok相关按钮", @"subtitle": @"隐藏贴文回复中Grok底部的编辑图片、下载Grok等按钮", @"icon": @"sparkles", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_disable_long_press_menu", @"title": @"禁用长按菜单", @"subtitle": @"禁止在时间线长按推文时弹出菜单或预览", @"icon": @"hand.tap", @"default": @NO, @"type": @"toggle" }
+            ],
+            @[
+                @{ @"key": @"wdd_enable_single_image_sizing", @"title": @"固定单图大小", @"subtitle": @"固定首页单张图片为 16:9 比例并居中裁剪", @"icon": @"arrow.up.left.and.arrow.down.right", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_timeline_images", @"title": @"屏蔽首页图片和视频", @"subtitle": @"仅在首页时间线屏蔽图片和视频，进入详情页可查看", @"icon": @"photo.on.rectangle", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_all_media", @"title": @"屏蔽全部图片和视频", @"subtitle": @"在首页、推文详情及回复中全部屏蔽图片和视频", @"icon": @"eye.slash", @"default": @NO, @"type": @"toggle" }
+            ],
+            @[
+                @{ @"key": @"enable_reply_filter", @"title": @"回复关键词屏蔽", @"subtitle": @"开启后将根据关键词隐藏回复推文", @"icon": @"magnifyingglass", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"reply_keywords", @"title": @"设置屏蔽关键词", @"subtitle": @"点击设置（多个关键词请用中or英文逗号分隔）", @"icon": @"keyboard", @"type": @"button" },
+                @{ @"key": @"enable_emoji_filter", @"title": @"屏蔽纯表情回复", @"subtitle": @"屏蔽无中文且无英文数字的回复，或超3个emoji且无中文的回复", @"icon": @"face.smiling", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"enable_regex_filter", @"title": @"回复正则屏蔽", @"subtitle": @"开启后将根据自定义正则表达式屏蔽回复", @"icon": @"curlybraces", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"reply_regexes", @"title": @"设置屏蔽正则表达式", @"subtitle": @"点击设置自定义正则（多条规则请换行分隔）", @"icon": @"chevron.left.forwardslash.chevron.right", @"type": @"button" }
+            ]
         ];
+
+        self.sectionTitles = @[@"界面", @"媒体", @"回复过滤", @"作者"];
         
         self.authors = @[
             @{ @"type": @"twitter", @"title": @"王导导", @"username": @"goodwdd", @"avatarURL": @"https://unavatar.io/x/goodwdd" },
@@ -64,37 +74,34 @@
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 2;
+    return self.settings.count + 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    if (section == 0) {
-        return self.settings.count;
-    } else if (section == 1) {
-        return self.authors.count;
+    if (section < (NSInteger)self.settings.count) {
+        return self.settings[section].count;
     }
-    return 0;
+    return self.authors.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (indexPath.section == 0) {
-        NSDictionary *setting = self.settings[indexPath.row];
+    if (indexPath.section < (NSInteger)self.settings.count) {
+        NSDictionary *setting = self.settings[indexPath.section][indexPath.row];
         NSString *type = setting[@"type"];
-        
+        NSString *iconName = setting[@"icon"];
+
         if ([type isEqualToString:@"toggle"]) {
             ModernSettingsToggleCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ToggleCell"];
             if (!cell) {
                 cell = [[ModernSettingsToggleCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"ToggleCell"];
             }
 
-            NSString *title = setting[@"title"];
-            NSString *subtitle = setting[@"subtitle"];
-            [cell configureWithTitle:title subtitle:subtitle];
+            [cell configureWithTitle:setting[@"title"] subtitle:setting[@"subtitle"] iconName:iconName];
 
             BOOL value = [WDDManager boolForKey:setting[@"key"]];
             [cell.toggleSwitch removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
             cell.toggleSwitch.on = value;
-            cell.toggleSwitch.tag = indexPath.row;
+            cell.toggleSwitch.tag = indexPath.section * 100 + indexPath.row;
             [cell.toggleSwitch addTarget:self action:@selector(toggleChanged:) forControlEvents:UIControlEventValueChanged];
             return cell;
         } else {
@@ -102,11 +109,11 @@
             if (!cell) {
                 cell = [[ModernSettingsCompactButtonCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"ButtonCell"];
             }
-            
-            NSString *title = setting[@"title"];
+
             NSString *currentValue = [WDDManager stringForKey:setting[@"key"]];
-            cell.titleLabel.text = title;
-            cell.subtitleLabel.text = currentValue ?: setting[@"subtitle"];
+            [cell configureWithTitle:setting[@"title"]
+                            subtitle:currentValue ?: setting[@"subtitle"]
+                            iconName:iconName];
             return cell;
         }
     } else {
@@ -122,23 +129,21 @@
 }
 
 - (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
-    if (section == 1) {
-        return [self headerViewWithTitle:@"作者"];
+    NSString *title = nil;
+    if (section < (NSInteger)self.sectionTitles.count) {
+        title = self.sectionTitles[section];
     }
-    return nil;
+    return title.length > 0 ? [self headerViewWithTitle:title] : nil;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
-    if (section == 1) {
-        return UITableViewAutomaticDimension;
-    }
-    return CGFLOAT_MIN;
+    return UITableViewAutomaticDimension;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    if (indexPath.section == 0) {
-        NSDictionary *setting = self.settings[indexPath.row];
+    if (indexPath.section < (NSInteger)self.settings.count) {
+        NSDictionary *setting = self.settings[indexPath.section][indexPath.row];
         if ([setting[@"type"] isEqualToString:@"button"]) {
             if ([setting[@"key"] isEqualToString:@"reply_regexes"]) {
                 [self showMultilineInput:setting];
@@ -146,7 +151,7 @@
                 [self showKeywordInput:setting];
             }
         }
-    } else if (indexPath.section == 1) {
+    } else {
         NSDictionary *author = self.authors[indexPath.row];
         if ([author[@"type"] isEqualToString:@"wechat"]) {
             [self followWeChatOfficialAccount];
@@ -180,25 +185,23 @@
 
     UILabel *titleLabel = [[UILabel alloc] init];
     titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    titleLabel.text = title;
-
-    id fontGroup = [objc_getClass("TAEStandardFontGroup") sharedFontGroup];
-    titleLabel.font = [fontGroup performSelector:@selector(headline2BoldFont)] ?: [UIFont systemFontOfSize:16 weight:UIFontWeightBold];
+    titleLabel.text = title.uppercaseString;
+    titleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
 
     Class TAEColorSettingsCls = objc_getClass("TAEColorSettings");
     id settings = [TAEColorSettingsCls sharedSettings];
     id currentPalette = [settings currentColorPalette];
     id colorPalette = [currentPalette colorPalette];
-    UIColor *titleColor = [colorPalette performSelector:@selector(textColor)];
-    titleLabel.textColor = titleColor;
+    UIColor *titleColor = [colorPalette performSelector:@selector(tabBarItemColor)];
+    titleLabel.textColor = titleColor ?: [UIColor secondaryLabelColor];
 
     [headerView addSubview:titleLabel];
 
     [NSLayoutConstraint activateConstraints:@[
-        [titleLabel.leadingAnchor constraintEqualToAnchor:headerView.leadingAnchor constant:20],
-        [titleLabel.trailingAnchor constraintEqualToAnchor:headerView.trailingAnchor constant:-20],
-        [titleLabel.topAnchor constraintEqualToAnchor:headerView.topAnchor constant:24],
-        [titleLabel.bottomAnchor constraintEqualToAnchor:headerView.bottomAnchor constant:-8]
+        [titleLabel.leadingAnchor constraintEqualToAnchor:headerView.leadingAnchor constant:16],
+        [titleLabel.trailingAnchor constraintEqualToAnchor:headerView.trailingAnchor constant:-16],
+        [titleLabel.topAnchor constraintEqualToAnchor:headerView.topAnchor constant:18],
+        [titleLabel.bottomAnchor constraintEqualToAnchor:headerView.bottomAnchor constant:-6]
     ]];
 
     return headerView;
@@ -236,7 +239,7 @@
     [cell.contentView addSubview:devChevron];
 
     [NSLayoutConstraint activateConstraints:@[
-        [avatarImageView.leadingAnchor constraintEqualToAnchor:cell.contentView.leadingAnchor constant:20],
+        [avatarImageView.leadingAnchor constraintEqualToAnchor:cell.contentView.leadingAnchor constant:16],
         [avatarImageView.centerYAnchor constraintEqualToAnchor:cell.contentView.centerYAnchor],
         [avatarImageView.widthAnchor constraintEqualToConstant:40],
         [avatarImageView.heightAnchor constraintEqualToConstant:40],
@@ -250,10 +253,10 @@
         [usernameLabel.topAnchor constraintEqualToAnchor:nameLabel.bottomAnchor constant:2],
         [usernameLabel.bottomAnchor constraintEqualToAnchor:cell.contentView.bottomAnchor constant:-12],
 
-        [devChevron.trailingAnchor constraintEqualToAnchor:cell.contentView.trailingAnchor constant:-20],
+        [devChevron.trailingAnchor constraintEqualToAnchor:cell.contentView.trailingAnchor constant:-16],
         [devChevron.centerYAnchor constraintEqualToAnchor:cell.contentView.centerYAnchor],
-        [devChevron.widthAnchor constraintEqualToConstant:18],
-        [devChevron.heightAnchor constraintEqualToConstant:18]
+        [devChevron.widthAnchor constraintEqualToConstant:14],
+        [devChevron.heightAnchor constraintEqualToConstant:14]
     ]];
 
     cell.backgroundColor = [BHDimPalette currentBackgroundColor];
@@ -282,7 +285,7 @@
     usernameLabel.font = [fontGroup performSelector:@selector(subtext2Font)] ?: [UIFont systemFontOfSize:12 weight:UIFontWeightRegular];
     usernameLabel.textColor = subtitleColor;
 
-    devChevron.image = [UIImage tfn_vectorImageNamed:@"chevron_right" fitsSize:CGSizeMake(18, 18) fillColor:subtitleColor];
+    devChevron.image = [UIImage tfn_vectorImageNamed:@"chevron_right" fitsSize:CGSizeMake(14, 14) fillColor:subtitleColor];
 
     NSString *type = developer[@"type"];
     if ([type isEqualToString:@"wechat"]) {
@@ -380,8 +383,12 @@
 }
 
 - (void)toggleChanged:(UISwitch *)sender {
-    NSDictionary *setting = self.settings[sender.tag];
-    [WDDManager setBool:sender.on forKey:setting[@"key"]];
+    NSInteger section = sender.tag / 100;
+    NSInteger row = sender.tag % 100;
+    if (section < (NSInteger)self.settings.count && row < (NSInteger)self.settings[section].count) {
+        NSDictionary *setting = self.settings[section][row];
+        [WDDManager setBool:sender.on forKey:setting[@"key"]];
+    }
 }
 
 - (void)setupFooterLabel {

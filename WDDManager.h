@@ -28,5 +28,6 @@
 + (BOOL)disableLongPressMenu;
 + (BOOL)hideGrokButtons;
 + (BOOL)hideTimelineImages;
++ (BOOL)hideAllMedia;
 + (NSInteger)filterConfigVersion;
 @end

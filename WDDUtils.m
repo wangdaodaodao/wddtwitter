@@ -53,6 +53,9 @@ BOOL WDDIsViewModelReply(id viewModel) {
 __weak UIViewController *WDDActiveViewController = nil;
 BOOL WDDActiveViewControllerIsDetail = NO;
 
+_Thread_local BOOL g_wddThreadFocalLayout = NO;
+_Thread_local BOOL g_wddThreadCollapseUnifiedCard = NO;
+
 static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
     if (!vc) return NO;
 
@@ -245,8 +248,7 @@ UIViewController *WDDViewControllerForView(UIView *view) {
 
 BOOL WDDIsFocalContext(UIView *view) {
 
-    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
-    if ([threadDict[@"WDDIsFocalLayout"] boolValue]) {
+    if (g_wddThreadFocalLayout) {
         return YES;
     }
 
@@ -271,8 +273,7 @@ BOOL WDDIsFocalContext(UIView *view) {
 }
 
 BOOL WDDIsInFocalLayout(void) {
-    NSMutableDictionary *threadDict = [[NSThread currentThread] threadDictionary];
-    return [threadDict[@"WDDIsFocalLayout"] boolValue];
+    return g_wddThreadFocalLayout;
 }
 
 static BOOL WDDClassNameLooksLikeMediaViewer(Class cls) {

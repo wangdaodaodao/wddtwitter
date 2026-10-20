@@ -3,6 +3,9 @@
 extern __weak UIViewController *WDDActiveViewController;
 extern BOOL WDDActiveViewControllerIsDetail;
 
+extern _Thread_local BOOL g_wddThreadFocalLayout;
+extern _Thread_local BOOL g_wddThreadCollapseUnifiedCard;
+
 BOOL WDDIsViewModelReply(id viewModel);
 BOOL WDDIsCurrentActiveContextDetail(void);
 UIViewController *WDDViewControllerForView(UIView *view);

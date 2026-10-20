@@ -293,6 +293,8 @@
 %hook UIViewController
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
+    WDDInvalidateMediaViewerCache();
+
     NSString *className = NSStringFromClass([self class]);
     if ([className hasPrefix:@"UI"] || [className hasPrefix:@"_"]) {
         return;
@@ -315,6 +317,8 @@
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
+    WDDInvalidateMediaViewerCache();
+
     NSString *className = NSStringFromClass([self class]);
     if ([className hasPrefix:@"UI"] || [className hasPrefix:@"_"]) {
         return;
@@ -332,6 +336,11 @@
     if (!WDDIsMediaViewerController(self)) {
         WDDActiveViewControllerIsDetail = WDDIsCurrentActiveContextDetail();
     }
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    WDDInvalidateMediaViewerCache();
 }
 %end
 

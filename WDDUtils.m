@@ -5,20 +5,44 @@
 #import <objc/message.h>
 #import <string.h>
 
-static inline BOOL WDDClassNameContains(Class cls, const char *needle) {
-    if (!cls || !needle) return NO;
-    const char *name = class_getName(cls);
-    return name ? (strcasestr(name, needle) != NULL) : NO;
-}
+#define WDD_CLASS_FLAG_CACHE_SIZE 64
+#define WDD_CLASS_FLAG_FOCAL          (1 << 0)
+#define WDD_CLASS_FLAG_DETAIL         (1 << 1)
+#define WDD_CLASS_FLAG_CONVERSATION   (1 << 2)
+#define WDD_CLASS_FLAG_MEDIA_VIEWER   (1 << 3)
 
-static inline BOOL WDDClassNameContains3(Class cls, const char *a, const char *b, const char *c) {
-    if (!cls) return NO;
+typedef struct {
+    Class cls;
+    uint8_t flags;
+} WDDClassFlagEntry;
+
+static _Thread_local WDDClassFlagEntry g_classFlagCache[WDD_CLASS_FLAG_CACHE_SIZE];
+static _Thread_local int g_classFlagCount = 0;
+
+static BOOL WDDClassNameLooksLikeMediaViewerUncached(Class cls);
+
+static uint8_t WDDClassFlags(Class cls) {
+    if (!cls) return 0;
+
+    for (int i = 0; i < g_classFlagCount; i++) {
+        if (g_classFlagCache[i].cls == cls) return g_classFlagCache[i].flags;
+    }
+
+    uint8_t flags = 0;
     const char *name = class_getName(cls);
-    if (!name) return NO;
-    if (a && strcasestr(name, a)) return YES;
-    if (b && strcasestr(name, b)) return YES;
-    if (c && strcasestr(name, c)) return YES;
-    return NO;
+    if (name) {
+        if (strcasestr(name, "Focal")) flags |= WDD_CLASS_FLAG_FOCAL;
+        if (strcasestr(name, "Detail")) flags |= WDD_CLASS_FLAG_DETAIL;
+        if (strcasestr(name, "Conversation")) flags |= WDD_CLASS_FLAG_CONVERSATION;
+    }
+    if (WDDClassNameLooksLikeMediaViewerUncached(cls)) flags |= WDD_CLASS_FLAG_MEDIA_VIEWER;
+
+    if (g_classFlagCount < WDD_CLASS_FLAG_CACHE_SIZE) {
+        g_classFlagCache[g_classFlagCount].cls = cls;
+        g_classFlagCache[g_classFlagCount].flags = flags;
+        g_classFlagCount++;
+    }
+    return flags;
 }
 
 BOOL WDDIsViewModelReply(id viewModel) {
@@ -61,7 +85,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
 
     UIViewController *p = vc.parentViewController;
     while (p) {
-        if (WDDClassNameContains3(object_getClass(p), "Detail", "Focal", "Conversation")) {
+        if (WDDClassFlags(object_getClass(p)) & (WDD_CLASS_FLAG_DETAIL | WDD_CLASS_FLAG_FOCAL | WDD_CLASS_FLAG_CONVERSATION)) {
             return YES;
         }
         p = p.parentViewController;
@@ -89,8 +113,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
         @try {
             id timeline = ((id (*)(id, SEL))objc_msgSend)(vc, @selector(timeline));
             if (timeline) {
-                NSString *timelineClassName = NSStringFromClass([timeline class]);
-                if ([timelineClassName rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                if (WDDClassFlags([timeline class]) & WDD_CLASS_FLAG_CONVERSATION) {
                     return YES;
                 }
             }
@@ -115,10 +138,7 @@ static BOOL isCurrentViewControllerDetails(UIViewController *vc) {
         } @catch (NSException *e) {}
     }
 
-    NSString *className = NSStringFromClass([vc class]);
-    if ([className rangeOfString:@"Detail" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-        [className rangeOfString:@"Focal" options:NSCaseInsensitiveSearch].location != NSNotFound ||
-        [className rangeOfString:@"Conversation" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+    if (WDDClassFlags([vc class]) & (WDD_CLASS_FLAG_DETAIL | WDD_CLASS_FLAG_FOCAL | WDD_CLASS_FLAG_CONVERSATION)) {
         return YES;
     }
 
@@ -256,8 +276,7 @@ BOOL WDDIsFocalContext(UIView *view) {
 
         UIView *temp = view;
         while (temp) {
-            if (WDDClassNameContains(object_getClass(temp), "Focal") ||
-                WDDClassNameContains(object_getClass(temp), "Detail")) {
+            if (WDDClassFlags(object_getClass(temp)) & (WDD_CLASS_FLAG_FOCAL | WDD_CLASS_FLAG_DETAIL)) {
                 return YES;
             }
             temp = temp.superview;
@@ -276,7 +295,7 @@ BOOL WDDIsInFocalLayout(void) {
     return g_wddThreadFocalLayout;
 }
 
-static BOOL WDDClassNameLooksLikeMediaViewer(Class cls) {
+static BOOL WDDClassNameLooksLikeMediaViewerUncached(Class cls) {
     if (!cls) return NO;
     const char *name = class_getName(cls);
     if (!name) return NO;
@@ -305,31 +324,57 @@ static BOOL WDDClassNameLooksLikeMediaViewer(Class cls) {
     return NO;
 }
 
+static inline BOOL WDDClassLooksLikeMediaViewer(Class cls) {
+    return (WDDClassFlags(cls) & WDD_CLASS_FLAG_MEDIA_VIEWER) != 0;
+}
+
+static NSInteger g_mediaViewerGeneration = 0;
+static NSInteger g_mediaViewerCachedGeneration = -1;
+static __unsafe_unretained UIViewController *g_mediaViewerCachedVC = nil;
+static BOOL g_mediaViewerCached = NO;
+
+void WDDInvalidateMediaViewerCache(void) {
+    g_mediaViewerGeneration++;
+}
+
 BOOL WDDIsMediaViewerController(UIViewController *vc) {
     while (vc) {
-        if (WDDClassNameLooksLikeMediaViewer(object_getClass(vc))) return YES;
+        if (WDDClassLooksLikeMediaViewer(object_getClass(vc))) return YES;
         vc = vc.parentViewController;
     }
     return NO;
 }
 
+static BOOL WDDIsActiveContextMediaViewer(void) {
+    UIViewController *vc = WDDActiveViewController;
+    NSInteger generation = g_mediaViewerGeneration;
+    if (generation == g_mediaViewerCachedGeneration && g_mediaViewerCachedVC == vc) {
+        return g_mediaViewerCached;
+    }
+
+    BOOL result = WDDIsMediaViewerController(vc);
+    g_mediaViewerCached = result;
+    g_mediaViewerCachedVC = vc;
+    g_mediaViewerCachedGeneration = generation;
+    return result;
+}
+
 BOOL WDDIsMediaViewerContext(UIView *view) {
-    if (WDDIsMediaViewerController(WDDActiveViewController)) return YES;
+    if (WDDIsActiveContextMediaViewer()) return YES;
+    if (!view) return NO;
 
-    if (view) {
-        UIView *temp = view;
-        while (temp) {
-            if (WDDClassNameLooksLikeMediaViewer(object_getClass(temp))) return YES;
-            temp = temp.superview;
-        }
+    UIView *temp = view;
+    while (temp) {
+        if (WDDClassLooksLikeMediaViewer(object_getClass(temp))) return YES;
+        temp = temp.superview;
+    }
 
-        if (WDDIsMediaViewerController(WDDViewControllerForView(view))) return YES;
+    if (WDDIsMediaViewerController(WDDViewControllerForView(view))) return YES;
 
-        UIViewController *presented = view.window.rootViewController;
-        while (presented) {
-            if (WDDClassNameLooksLikeMediaViewer(object_getClass(presented))) return YES;
-            presented = presented.presentedViewController;
-        }
+    UIViewController *presented = view.window.rootViewController;
+    while (presented) {
+        if (WDDClassLooksLikeMediaViewer(object_getClass(presented))) return YES;
+        presented = presented.presentedViewController;
     }
 
     return NO;
@@ -338,7 +383,7 @@ BOOL WDDIsMediaViewerContext(UIView *view) {
 BOOL WDDIsFocalStatusView(UIView *view) {
     UIView *temp = view;
     while (temp) {
-        if (WDDClassNameContains(object_getClass(temp), "Focal")) return YES;
+        if (WDDClassFlags(object_getClass(temp)) & WDD_CLASS_FLAG_FOCAL) return YES;
         temp = temp.superview;
     }
     return NO;

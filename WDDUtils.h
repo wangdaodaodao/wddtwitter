@@ -13,6 +13,7 @@ BOOL WDDIsFocalContext(UIView *view);
 
 BOOL WDDIsMediaViewerContext(UIView *view);
 BOOL WDDIsMediaViewerController(UIViewController *vc);
+void WDDInvalidateMediaViewerCache(void);
 
 BOOL WDDIsFocalStatusView(UIView *view);
 

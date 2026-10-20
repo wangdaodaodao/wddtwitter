@@ -58,6 +58,14 @@ static void WDDRefreshHotCache(void) {
     _hotCacheHideProbableSpam = [_prefsCache[@"wdd_hide_probable_spam"] boolValue];
 }
 
+static void WDDNormalizeExclusiveMediaToggles(void) {
+    if ([_prefsCache[@"wdd_hide_all_media"] boolValue] &&
+        [_prefsCache[@"wdd_hide_timeline_images"] boolValue]) {
+        _prefsCache[@"wdd_hide_timeline_images"] = @NO;
+        [_prefsCache writeToFile:_prefsPath atomically:YES];
+    }
+}
+
 static void WDDEnsurePrefs(void) {
     if (_prefsPath) return;
     
@@ -112,6 +120,7 @@ static void WDDEnsurePrefs(void) {
         
         [_prefsCache writeToFile:_prefsPath atomically:YES];
     }
+    WDDNormalizeExclusiveMediaToggles();
     WDDRefreshHotCache();
 }
 
@@ -174,6 +183,13 @@ static void WDDSavePrefs(void) {
 + (void)setBool:(BOOL)value forKey:(NSString *)key {
     WDDEnsurePrefs();
     _prefsCache[key] = @(value);
+    if (value) {
+        if ([key isEqualToString:@"wdd_hide_all_media"]) {
+            _prefsCache[@"wdd_hide_timeline_images"] = @NO;
+        } else if ([key isEqualToString:@"wdd_hide_timeline_images"]) {
+            _prefsCache[@"wdd_hide_all_media"] = @NO;
+        }
+    }
     WDDSavePrefs();
     WDDRefreshHotCache();
     [self updateFilterVersion];

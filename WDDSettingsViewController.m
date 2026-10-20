@@ -383,12 +383,44 @@
     [self presentViewController:alert animated:YES completion:nil];
 }
 
+- (NSString *)pairedKeyForKey:(NSString *)key {
+    if ([key isEqualToString:@"wdd_hide_all_media"]) return @"wdd_hide_timeline_images";
+    if ([key isEqualToString:@"wdd_hide_timeline_images"]) return @"wdd_hide_all_media";
+    return nil;
+}
+
+- (NSIndexPath *)indexPathForSettingKey:(NSString *)key {
+    for (NSInteger section = 0; section < (NSInteger)self.settings.count; section++) {
+        NSArray<NSDictionary *> *rows = self.settings[section];
+        for (NSInteger row = 0; row < (NSInteger)rows.count; row++) {
+            if ([rows[row][@"key"] isEqualToString:key]) {
+                return [NSIndexPath indexPathForRow:row inSection:section];
+            }
+        }
+    }
+    return nil;
+}
+
 - (void)toggleChanged:(UISwitch *)sender {
     NSInteger section = sender.tag / 100;
     NSInteger row = sender.tag % 100;
-    if (section < (NSInteger)self.settings.count && row < (NSInteger)self.settings[section].count) {
-        NSDictionary *setting = self.settings[section][row];
-        [WDDManager setBool:sender.on forKey:setting[@"key"]];
+    if (section >= (NSInteger)self.settings.count || row >= (NSInteger)self.settings[section].count) {
+        return;
+    }
+
+    NSString *key = self.settings[section][row][@"key"];
+    NSString *otherKey = [self pairedKeyForKey:key];
+    BOOL otherWasOn = otherKey ? [WDDManager boolForKey:otherKey] : NO;
+
+    [WDDManager setBool:sender.on forKey:key];
+
+    if (!sender.on || !otherKey || !otherWasOn) return;
+
+    NSIndexPath *otherPath = [self indexPathForSettingKey:otherKey];
+    if (!otherPath) return;
+    UITableViewCell *otherCell = [self.tableView cellForRowAtIndexPath:otherPath];
+    if ([otherCell isKindOfClass:[ModernSettingsToggleCell class]]) {
+        [((ModernSettingsToggleCell *)otherCell).toggleSwitch setOn:NO animated:YES];
     }
 }
 
@@ -414,7 +446,7 @@
     id colorPalette = [currentPalette colorPalette];
     UIColor *subtitleColor = [colorPalette performSelector:@selector(tabBarItemColor)];
     
-    NSString *line1 = @"WddTwitter v1.2.1\n";
+    NSString *line1 = @"WddTwitter v1.2.10\n";
     NSString *line2 = @"基于 X 版本 12.35\n";
     NSString *line4 = @"更多信息：wangdaodao.me";
     

@@ -18,3 +18,5 @@ BOOL WDDShouldHideTimelineMedia(UIView *view);
 BOOL WDDIsInFocalLayout(void);
 
 BOOL WDDShouldHideTranslation(void);
+
+BOOL WDDShouldHideProbableSpam(void);

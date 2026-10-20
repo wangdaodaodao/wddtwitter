@@ -210,37 +210,6 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel);
     return [WDDManager hideDisclosureLabels] ? NO : %orig;
 }
 %end
-%group SwiftHooks
-%hook T1TwitterSwift_TwitterCoreStatusViewModelAdapter
-- (BOOL)hasMedia {
-    if (WDDShouldHideTimelineMedia(nil)) {
-        return NO;
-    }
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? NO : %orig;
-}
-- (NSArray *)inlineMediaInfos {
-    if (WDDShouldHideTimelineMedia(nil)) {
-        return @[];
-    }
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (NSArray *)representedMediaEntities {
-    if (WDDShouldHideTimelineMedia(nil)) {
-        return @[];
-    }
-    return ([WDDManager enableSingleImageSizing] && g_isCalculatingQuotedLayout) ? @[] : %orig;
-}
-- (id)fromUserHighlightedDesignatorInfo {
-    return [WDDManager hideAccountLabels] ? nil : %orig;
-}
-- (BOOL)hasPaidPromotionDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-- (BOOL)hasAIGeneratedDisclosure {
-    return [WDDManager hideDisclosureLabels] ? NO : %orig;
-}
-%end
-%end
 
 %hook TFNTwitterUser
 - (NSString *)fullName {
@@ -308,6 +277,13 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel);
 }
 - (BOOL)hasParodyProfileLabel {
     return [WDDManager hideAccountLabels] ? NO : %orig;
+}
+%end
+
+%hook T1StandardStatusAffiliateBadgeViewAdapter
+- (BOOL)shouldBeVisibleForViewModel:(id)viewModel {
+    if ([WDDManager hideAccountLabels]) return NO;
+    return %orig;
 }
 %end
 
@@ -438,20 +414,6 @@ static void adjustStatusViewLayout(UIView *statusView) {
     }
 }
 
-%hook T1StatusView
-- (void)setFrame:(CGRect)frame {
-    if ([WDDManager hideAvatar]) {
-        frame.size.width = [UIScreen mainScreen].bounds.size.width;
-    }
-    %orig(frame);
-}
-
-- (void)layoutSubviews {
-    %orig;
-    adjustStatusViewLayout((UIView *)self);
-}
-%end
-
 %hook T1StandardStatusView
 - (void)setFrame:(CGRect)frame {
     if ([WDDManager hideAvatar]) {
@@ -514,6 +476,202 @@ static void adjustStatusViewLayout(UIView *statusView) {
         }
     }
 }
+%end
+
+static void WDDHideShowMoreConnector(UIView *host, NSString *key) {
+    if (!host || key.length == 0) return;
+    id target = nil;
+    @try {
+        target = [host valueForKey:key];
+    } @catch (__unused NSException *e) {
+        target = nil;
+    }
+    if (![target isKindOfClass:[UIView class]]) return;
+    UIView *view = (UIView *)target;
+    view.hidden = YES;
+    view.alpha = 0.0;
+}
+
+static BOOL WDDIsConnectorDecorView(UIView *view) {
+    if (!view) return NO;
+    NSString *name = NSStringFromClass([view class]);
+    if ([name rangeOfString:@"Connector"].location != NSNotFound) return YES;
+    if ([name rangeOfString:@"Ellipsis"].location != NSNotFound) return YES;
+    return NO;
+}
+
+static void WDDCollectLabels(UIView *view, NSMutableArray *labels, NSInteger depth) {
+    if (!view || depth > 3) return;
+    for (UIView *subview in view.subviews) {
+        if ([subview isKindOfClass:[UILabel class]]) {
+            [labels addObject:subview];
+        }
+        if (subview.subviews.count > 0) {
+            WDDCollectLabels(subview, labels, depth + 1);
+        }
+    }
+}
+
+static void WDDTidyShowMoreCellLayout(UITableViewCell *cell) {
+    if (!cell) return;
+
+    WDDHideShowMoreConnector(cell, @"connectorTopView");
+    WDDHideShowMoreConnector(cell, @"connectorEllipsisView");
+    WDDHideShowMoreConnector(cell, @"connectorBottomView");
+
+    CGFloat width = cell.bounds.size.width - 24.0;
+    if (width <= 0) return;
+
+    NSMutableArray *labels = [NSMutableArray array];
+    WDDCollectLabels(cell, labels, 0);
+
+    for (UIView *subview in cell.subviews) {
+        if (WDDIsConnectorDecorView(subview)) {
+            subview.hidden = YES;
+            subview.alpha = 0.0;
+        }
+    }
+
+    for (UILabel *label in labels) {
+        if (label.text.length == 0) continue;
+        CGRect frame = label.frame;
+        frame.origin.x = 12.0;
+        frame.size.width = width;
+        if (frame.origin.y > 12.0) {
+            frame.origin.y = 6.0;
+        }
+        label.frame = frame;
+        label.textAlignment = NSTextAlignmentLeft;
+    }
+}
+
+static id WDDValueForKeySafe(id object, NSString *key) {
+    if (!object || key.length == 0) return nil;
+    @try {
+        return [object valueForKey:key];
+    } @catch (__unused NSException *e) {
+        return nil;
+    }
+}
+
+static NSString *WDDPlainTextOf(id text) {
+    if ([text isKindOfClass:[NSString class]]) return (NSString *)text;
+    if ([text isKindOfClass:[NSAttributedString class]]) return [(NSAttributedString *)text string];
+    if ([text isKindOfClass:[NSObject class]]) {
+        id inner = WDDValueForKeySafe(text, @"string");
+        if ([inner isKindOfClass:[NSString class]]) return inner;
+        id stringValue = WDDValueForKeySafe(text, @"stringValue");
+        if ([stringValue isKindOfClass:[NSString class]]) return stringValue;
+    }
+    return nil;
+}
+
+static BOOL WDDIsProbableSpamText(id text) {
+    NSString *plain = WDDPlainTextOf(text);
+    if (plain.length == 0) return NO;
+
+    if ([plain rangeOfString:@"垃圾"].location != NSNotFound) {
+        if ([plain rangeOfString:@"显示"].location != NSNotFound) return YES;
+        if ([plain rangeOfString:@"可能"].location != NSNotFound) return YES;
+        if ([plain rangeOfString:@"潜在"].location != NSNotFound) return YES;
+        if ([plain rangeOfString:@"查看"].location != NSNotFound) return YES;
+        return NO;
+    }
+
+    NSString *lower = plain.lowercaseString;
+    if ([lower rangeOfString:@"spam"].location == NSNotFound) return NO;
+    if ([lower rangeOfString:@"show"].location != NSNotFound) return YES;
+    if ([lower rangeOfString:@"probable"].location != NSNotFound) return YES;
+    if ([lower rangeOfString:@"likely"].location != NSNotFound) return YES;
+    if ([lower rangeOfString:@"possible"].location != NSNotFound) return YES;
+    if ([lower rangeOfString:@"potential"].location != NSNotFound) return YES;
+    if ([lower rangeOfString:@"view"].location != NSNotFound) return YES;
+    return NO;
+}
+
+static void WDDSyncSpamCellContent(UIView *cell, BOOL hide) {
+    if (!cell) return;
+    if (hide) {
+        cell.backgroundColor = [UIColor clearColor];
+        if ([cell isKindOfClass:[UITableViewCell class]]) {
+            ((UITableViewCell *)cell).contentView.backgroundColor = [UIColor clearColor];
+        }
+    }
+    for (UIView *subview in cell.subviews) {
+        subview.hidden = hide;
+        subview.alpha = hide ? 0.0 : 1.0;
+    }
+}
+
+static BOOL WDDViewTreeShowsProbableSpam(UIView *view, NSInteger depth) {
+    if (!view || depth > 4) return NO;
+    if ([view isKindOfClass:[UILabel class]]) {
+        UILabel *label = (UILabel *)view;
+        if (WDDIsProbableSpamText(label.text)) return YES;
+        if (WDDIsProbableSpamText(label.attributedText)) return YES;
+    }
+    for (UIView *subview in view.subviews) {
+        if (WDDViewTreeShowsProbableSpam(subview, depth + 1)) return YES;
+    }
+    return NO;
+}
+
+%hook T1ConversationShowMoreCell
+- (void)layoutSubviews {
+    %orig;
+    if ([WDDManager hideAvatar]) {
+        WDDTidyShowMoreCellLayout((UITableViewCell *)self);
+    }
+}
+%end
+
+%hook TFNTextCell
++ (CGFloat)heightForStyle:(long long)style text:(id)text multipleLines:(BOOL)multipleLines detailText:(id)detailText multipleLines:(BOOL)detailMultipleLines tableWidth:(CGFloat)tableWidth contentEdgeInsets:(UIEdgeInsets)contentEdgeInsets {
+    if (WDDShouldHideProbableSpam() && (WDDIsProbableSpamText(text) || WDDIsProbableSpamText(detailText))) {
+        return 0.0;
+    }
+    return %orig;
+}
+
++ (CGFloat)estimatedHeightForStyle:(long long)style text:(id)text multipleLines:(BOOL)multipleLines detailText:(id)detailText multipleLines:(BOOL)detailMultipleLines tableWidth:(CGFloat)tableWidth contentEdgeInsets:(UIEdgeInsets)contentEdgeInsets {
+    if (WDDShouldHideProbableSpam() && (WDDIsProbableSpamText(text) || WDDIsProbableSpamText(detailText))) {
+        return 0.0;
+    }
+    return %orig;
+}
+
++ (CGFloat)_heightForStyle:(long long)style text:(id)text font:(id)font multipleLines:(BOOL)multipleLines detailText:(id)detailText font:(id)detailFont multipleLines:(BOOL)detailMultipleLines padding:(UIEdgeInsets)padding icon:(id)icon horizontalIconPadding:(UIEdgeInsets)horizontalIconPadding badgeText:(id)badgeText tableWidth:(CGFloat)tableWidth contentEdgeInsets:(UIEdgeInsets)contentEdgeInsets estimated:(BOOL)estimated {
+    if (WDDShouldHideProbableSpam() && (WDDIsProbableSpamText(text) || WDDIsProbableSpamText(detailText))) {
+        return 0.0;
+    }
+    return %orig;
+}
+%end
+
+%group ConversationShowMoreThreadCellHook
+%hook _TtC14T1TwitterSwift30ConversationShowMoreThreadCell
+- (void)layoutSubviews {
+    %orig;
+    BOOL hide = WDDShouldHideProbableSpam() && WDDViewTreeShowsProbableSpam((UIView *)self, 0);
+    WDDSyncSpamCellContent((UIView *)self, hide);
+}
+
+- (CGSize)sizeThatFits:(CGSize)size {
+    CGSize result = %orig;
+    if (WDDShouldHideProbableSpam() && WDDViewTreeShowsProbableSpam((UIView *)self, 0)) {
+        return CGSizeZero;
+    }
+    return result;
+}
+
+- (CGSize)systemLayoutSizeFittingSize:(CGSize)size {
+    CGSize result = %orig;
+    if (WDDShouldHideProbableSpam() && WDDViewTreeShowsProbableSpam((UIView *)self, 0)) {
+        return CGSizeZero;
+    }
+    return result;
+}
+%end
 %end
 
 static void makeImageViewsAspectFill(UIView *view, CGRect rect) {
@@ -1166,8 +1324,29 @@ static BOOL WDDShouldFixSingleImageSize(id viewModel) {
 %end
 %end
 
+%group DeamplificationCellHook
+%hook _TtC14T1TwitterSwift45ConversationDeamplificationShowMoreThreadCell
+- (void)layoutSubviews {
+    %orig;
+    BOOL hide = WDDShouldHideProbableSpam() && WDDViewTreeShowsProbableSpam((UIView *)self, 0);
+    WDDSyncSpamCellContent((UIView *)self, hide);
+}
+%end
+%end
+
 %ctor {
-    %init(SwiftHooks, T1TwitterSwift_TwitterCoreStatusViewModelAdapter = objc_getClass("T1TwitterSwift.TwitterCoreStatusViewModelAdapter"));
+
+    Class c0 = objc_getClass("T1TwitterSwift.ConversationDeamplificationShowMoreThreadCell");
+    if (!c0) c0 = objc_getClass("_TtC14T1TwitterSwift45ConversationDeamplificationShowMoreThreadCell");
+    if (c0) {
+        %init(DeamplificationCellHook, _TtC14T1TwitterSwift45ConversationDeamplificationShowMoreThreadCell = c0);
+    }
+
+    Class c6 = objc_getClass("T1TwitterSwift.ConversationShowMoreThreadCell");
+    if (!c6) c6 = objc_getClass("_TtC14T1TwitterSwift30ConversationShowMoreThreadCell");
+    if (c6) {
+        %init(ConversationShowMoreThreadCellHook, _TtC14T1TwitterSwift30ConversationShowMoreThreadCell = c6);
+    }
 
     Class c1 = objc_getClass("TwitterUnifiedCardsUI.SwipeableMediaComponentView.LayoutState");
     if (!c1) c1 = objc_getClass("_TtCC21TwitterUnifiedCardsUI27SwipeableMediaComponentView11LayoutState");

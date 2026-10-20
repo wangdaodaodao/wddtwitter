@@ -30,6 +30,7 @@
                 @{ @"key": @"wdd_hide_disclosure_labels", @"title": @"隐藏推文底部标签", @"subtitle": @"隐藏推文底部的“付费合作/推广/AI生成”等标签", @"icon": @"text.badge.xmark", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_timeline_view_count", @"title": @"隐藏浏览量数值", @"subtitle": @"隐藏时间线及推文详情内的浏览量（流量数值）", @"icon": @"chart.bar.xaxis", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_translation_notice", @"title": @"屏蔽翻译提示", @"subtitle": @"隐藏推文底部的翻译来源和显示原文提示（含Grok）", @"icon": @"character.bubble", @"default": @NO, @"type": @"toggle" },
+                @{ @"key": @"wdd_hide_probable_spam", @"title": @"屏蔽“可能的垃圾信息”", @"subtitle": @"隐藏会话中“显示可能的垃圾信息”提示行", @"icon": @"exclamationmark.bubble", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_reply_to_indicator", @"title": @"屏蔽回复指示", @"subtitle": @"隐藏回复推文中的‘回复 @用户名’提示", @"icon": @"arrowshape.turn.up.left", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_hide_grok_buttons", @"title": @"隐藏Grok相关按钮", @"subtitle": @"隐藏贴文回复中Grok底部的编辑图片、下载Grok等按钮", @"icon": @"sparkles", @"default": @NO, @"type": @"toggle" },
                 @{ @"key": @"wdd_disable_long_press_menu", @"title": @"禁用长按菜单", @"subtitle": @"禁止在时间线长按推文时弹出菜单或预览", @"icon": @"hand.tap", @"default": @NO, @"type": @"toggle" }

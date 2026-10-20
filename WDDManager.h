@@ -15,6 +15,7 @@
 + (BOOL)hideAvatar;
 + (BOOL)hideBlueVerified;
 + (BOOL)hideTranslationNotice;
++ (BOOL)hideProbableSpam;
 + (BOOL)hideReplyToIndicator;
 + (BOOL)enableReplyFilter;
 + (NSString *)replyKeywords;

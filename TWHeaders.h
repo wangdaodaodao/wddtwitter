@@ -79,6 +79,12 @@
 @interface TFNTextCell : UITableViewCell
 @end
 
+@interface _TtC14T1TwitterSwift45ConversationDeamplificationShowMoreThreadCell : TFNTextCell
+@end
+
+@interface _TtC14T1TwitterSwift30ConversationShowMoreThreadCell : TFNTextCell
+@end
+
 @interface UIView (TwitterViewModels)
 - (id)viewModel;
 @end

@@ -358,3 +358,7 @@ BOOL WDDShouldHideTimelineMedia(UIView *view) {
 BOOL WDDShouldHideTranslation(void) {
     return [WDDManager hideTranslationNotice];
 }
+
+BOOL WDDShouldHideProbableSpam(void) {
+    return [WDDManager hideProbableSpam];
+}

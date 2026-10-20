@@ -4,10 +4,6 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 
-// ==============================
-// Hide Translation Banner / Grok Translation
-// ==============================
-
 static void WDDApplyTranslationViewVisibility(UIView *view) {
     if (!view) return;
     if (WDDShouldHideTranslation()) {
@@ -172,11 +168,7 @@ static void WDDApplyTranslationViewVisibility(UIView *view) {
 }
 %end
 
-%end // end of TimelineTranslation group
-
-// ==============================
-// Hide Grok Buttons
-// ==============================
+%end
 
 static BOOL WDDGrokViewShouldHide(UIView *view) {
     return [WDDManager hideGrokButtons] && !WDDIsFocalContext(view);
@@ -259,10 +251,6 @@ static BOOL WDDGrokAdapterShouldHide(void) {
 - (void)layoutSubviews { %orig; WDDHideGrokView((UIView *)self); }
 - (CGSize)sizeThatFits:(CGSize)size { return WDDGrokViewShouldHide((UIView *)self) ? CGSizeZero : %orig(size); }
 %end
-
-// ==============================
-// Grok Feature Switches Overrides
-// ==============================
 
 %hook TPSTwitterFeatureSwitches
 - (BOOL)boolForKey:(NSString *)key {

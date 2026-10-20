@@ -49,11 +49,13 @@ static NSString *_lastRegexes;
 static BOOL _hotCacheHideTimelineImages = NO;
 static BOOL _hotCacheHideAllMedia = NO;
 static BOOL _hotCacheEnableSingleImageSizing = NO;
+static BOOL _hotCacheHideProbableSpam = NO;
 
 static void WDDRefreshHotCache(void) {
     _hotCacheHideTimelineImages = [_prefsCache[@"wdd_hide_timeline_images"] boolValue];
     _hotCacheHideAllMedia = [_prefsCache[@"wdd_hide_all_media"] boolValue];
     _hotCacheEnableSingleImageSizing = [_prefsCache[@"wdd_enable_single_image_sizing"] boolValue];
+    _hotCacheHideProbableSpam = [_prefsCache[@"wdd_hide_probable_spam"] boolValue];
 }
 
 static void WDDEnsurePrefs(void) {
@@ -218,6 +220,11 @@ static void WDDSavePrefs(void) {
 
 + (BOOL)hideTranslationNotice {
     return [self boolForKey:@"wdd_hide_translation_notice"];
+}
+
++ (BOOL)hideProbableSpam {
+    WDDEnsurePrefs();
+    return _hotCacheHideProbableSpam;
 }
 
 + (BOOL)hideReplyToIndicator {
